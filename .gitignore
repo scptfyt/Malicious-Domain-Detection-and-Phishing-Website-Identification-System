@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Data and model artifacts
+data/
+artifacts/
+logs/
+
+# Local docs and deployment helpers
+*.pptx
+
