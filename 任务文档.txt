@@ -61,3 +61,4 @@
 60. 更新部署相关配置，将 `Flask-Cors` 写入 `requirements.txt`，并允许通过 `SESSION_COOKIE_SECURE=1` 在 Vercel HTTPS 环境启用安全 Cookie。
 61. 为 SQLPub 云数据库准备建表脚本 `sqlpub_schema.sql`，包含当前项目所需的用户、样本、模型、训练任务、评估指标、检测记录、操作日志和人工复核等数据表结构。
 62. 修正 Vercel 构建配置，移除 `vercel.json` 中不兼容的 `runtime: "python3.12"` 配置，改为使用 Vercel Python/Flask 默认运行时。
+63. 根据 Vercel Serverless Function 目录要求，新增 `api/index.py` 作为线上 Flask 入口，并将 `vercel.json` 的函数配置和路由重写改为指向 `/api/index.py`。
