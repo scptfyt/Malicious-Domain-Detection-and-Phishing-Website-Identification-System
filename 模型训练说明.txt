@@ -1,0 +1,107 @@
+基于深度学习的恶意域名检测与钓鱼网站识别系统 模型训练说明
+
+一、当前模型状态说明
+
+1. 当前系统已经接入本地可训练模型流程，不是固定写死的检测结果。
+2. 现阶段已完成的是字符级 TF-IDF + 传统机器学习分类器的本地训练基线模型，支持字符 LR、字符 NB、字符 SGD。
+3. 该模型适合作为毕设系统的第一版可运行模型，用于打通“样本导入 -> 模型训练 -> 指标评估 -> 模型保存 -> 在线检测”的完整业务流程。
+4. 严格来说，当前模型还不是 CNN/LSTM/Transformer 深度学习模型。后续可在此流程稳定后继续扩展 PyTorch 版 CNN 或 LSTM，并与当前基线模型做实验对比。
+5. 当前已有一个本地训练完成并启用的模型：
+   模型名称：local-char-lr
+   模型类型：char_lr
+   模型文件：artifacts/models/v20260512025507.joblib
+6. 当前数据库中的 domain_sample 样本表暂时为空，已训练模型主要基于系统内置 bootstrap 示例样本完成。因此指标偏高时只能说明示例数据较容易分类，不能直接代表真实网络数据上的最终效果。
+
+二、推荐训练路线
+
+第一阶段：先用内置 bootstrap 样本训练，确认系统流程正常。
+
+1. 启动后端：
+   D:/Python/python3.11.3/python.exe E:/BIYESHEJI/run.py
+2. 浏览器访问：
+   http://127.0.0.1:5000/
+3. 登录系统：
+   默认账号：admin
+   默认密码：admin123
+4. 进入“模型中心”。
+5. 模型类型选择“字符 LR”。
+6. 保持“包含基础样本”为“是”。
+7. 点击“开始训练”。
+8. 训练完成后查看准确率、精确率、召回率、F1、AUC 和混淆矩阵。
+
+第二阶段：导入自己的训练样本，再重新训练。
+
+1. 进入“数据集管理”。
+2. 每次导入同一种标签的样本，例如先导入正常域名，再导入钓鱼或恶意域名。
+3. 标签建议：
+   正常域名：benign
+   恶意域名：malicious
+   钓鱼网站：phishing
+   DGA 域名：dga
+4. 样本类型建议：
+   normal
+   phishing
+   malware
+   dga
+   manual
+5. 数据来源建议填写清楚，例如 alexa_top、majestic、phishtank、urlhaus、manual_collect 等，方便论文说明数据来源。
+6. 导入后回到“模型中心”，重新训练模型。
+7. 当数据库样本数量较多且正负样本都比较均衡时，可以尝试关闭“包含基础样本”，只用自己的数据训练。
+
+三、命令行训练方式
+
+如果不想通过前端页面训练，也可以在 PowerShell 中执行：
+
+D:/Python/python3.11.3/python.exe E:/BIYESHEJI/train_model.py
+
+常用参数示例：
+
+1. 训练字符 LR 模型并启用：
+   D:/Python/python3.11.3/python.exe E:/BIYESHEJI/train_model.py --model-type char_lr --model-name local-char-lr
+
+2. 训练字符 NB 模型：
+   D:/Python/python3.11.3/python.exe E:/BIYESHEJI/train_model.py --model-type char_nb --model-name local-char-nb
+
+3. 只使用数据库样本训练，不使用内置基础样本：
+   D:/Python/python3.11.3/python.exe E:/BIYESHEJI/train_model.py --no-bootstrap --model-name db-only-char-lr
+
+4. 训练但不自动启用：
+   D:/Python/python3.11.3/python.exe E:/BIYESHEJI/train_model.py --no-activate
+
+四、样本准备要求
+
+1. 至少需要 20 条可训练样本。
+2. 数据中必须同时包含正常样本和恶意样本，否则无法训练二分类模型。
+3. 推荐正式实验样本不少于几百条；如果时间允许，建议达到 1000 条以上。
+4. 正负样本数量尽量均衡，例如正常 500 条、恶意/钓鱼 500 条。
+5. 每行一个域名或 URL，例如：
+   www.baidu.com
+   https://login.example.com/account
+   secure-paypal-update.example/login
+6. 导入前建议删除明显重复、空行、无意义字符串和过短样本。
+
+五、指标解释
+
+1. Accuracy：整体预测正确比例。
+2. Precision：被模型判断为恶意的样本中，真正恶意的比例。
+3. Recall：全部真实恶意样本中，被模型找出来的比例。
+4. F1：Precision 和 Recall 的综合指标。
+5. AUC：模型区分正常与恶意样本能力的综合指标。
+6. 混淆矩阵：用于查看正常样本误报、恶意样本漏报等情况。
+
+六、论文和答辩中的建议表述
+
+当前系统可表述为：
+
+系统已完成本地模型训练闭环，当前实现字符级 TF-IDF + 机器学习分类器作为基线模型，用于验证数据处理、模型训练、指标评估、模型持久化和在线检测流程。后续在数据量和训练环境满足条件后，可进一步扩展 CNN、LSTM 或 Transformer 深度学习模型，并与当前基线模型进行对比实验。
+
+不要把当前字符 LR 模型直接描述成已经完成的深度学习模型。更稳妥的写法是：
+
+“当前阶段先实现轻量级字符模型作为基线模型，后续扩展深度学习模型，并以准确率、召回率、F1 值、AUC 等指标进行对比分析。”
+
+七、下一步建议
+
+1. 先导入真实正常域名和钓鱼/恶意域名样本。
+2. 使用当前字符 LR 模型重新训练，得到真实数据上的基线指标。
+3. 保存训练结果和模型中心页面截图，用于论文实验章节。
+4. 在基线模型稳定后，再增加 CNN 或 LSTM 深度学习训练模块。

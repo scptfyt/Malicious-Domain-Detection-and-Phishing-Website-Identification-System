@@ -1,0 +1,19 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "app.py": {
+      "runtime": "python3.12",
+      "excludeFiles": "{artifacts/**,data/**,logs/**,scripts/**,__pycache__/**,backend/**/__pycache__/**,*.pptx,train_*.py,database_init.sql,任务文档.txt,模型训练说明.txt,深度学习模型训练操作指南.txt,设计文档.txt,需求文档.txt,需求设计核对表.txt,VERCEL_DEPLOYMENT.md}"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/app.py"
+    },
+    {
+      "source": "/",
+      "destination": "/app.py"
+    }
+  ]
+}
