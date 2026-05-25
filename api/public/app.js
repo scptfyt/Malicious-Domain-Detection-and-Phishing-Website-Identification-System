@@ -85,6 +85,24 @@ function displayText(value) {
   return textMap[key] || textMap[key.replaceAll("_", "-")] || key;
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function formatLogDetail(value) {
+  if (!value) return "-";
+  try {
+    return escapeHtml(JSON.stringify(JSON.parse(value), null, 2));
+  } catch {
+    return escapeHtml(value);
+  }
+}
+
 async function api(path, options = {}) {
   const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
   const response = await fetch(path, {
@@ -260,9 +278,10 @@ function modelLabel(model) {
 function populateModelSelects(models) {
   state.models = models || [];
   const activeModel = state.models.find((item) => item.is_active);
+  const selectableModels = state.models.filter((item) => !item.is_active);
   const options = [
     `<option value="active">当前启用模型${activeModel ? `：${activeModel.model_name}` : ""}</option>`,
-    ...state.models.map((item) => `<option value="${item.id}">${modelLabel(item)}</option>`),
+    ...selectableModels.map((item) => `<option value="${item.id}">${modelLabel(item)}</option>`),
   ].join("");
 
   ["#singleModelSelect", "#batchModelSelect"].forEach((selector) => {
@@ -270,7 +289,7 @@ function populateModelSelects(models) {
     if (!node) return;
     const previous = node.value || "active";
     node.innerHTML = options;
-    node.value = state.models.some((item) => String(item.id) === previous) ? previous : "active";
+    node.value = selectableModels.some((item) => String(item.id) === previous) ? previous : "active";
   });
 }
 
