@@ -55,12 +55,39 @@ def _metric_value(metrics: dict, key: str):
         return None
 
 
+def _effective_active_model(user_id: int | None) -> ModelInfo | None:
+    if user_id:
+        personal_model = (
+            ModelInfo.query.filter_by(owner_id=user_id, is_active=True)
+            .order_by(ModelInfo.id.desc())
+            .first()
+        )
+        if personal_model:
+            return personal_model
+    return (
+        ModelInfo.query.filter(ModelInfo.owner_id.is_(None), ModelInfo.is_active.is_(True))
+        .order_by(ModelInfo.id.desc())
+        .first()
+    )
+
+
+def _model_dict_for_user(model: ModelInfo, active_model_id: int | None) -> dict:
+    data = model.to_dict()
+    data["raw_is_active"] = model.is_active
+    data["is_active"] = bool(active_model_id and model.id == active_model_id)
+    return data
+
+
 @models_bp.get("")
 def list_models():
     query = ModelInfo.query
     if not is_admin():
         user_id = current_user_id()
         query = query.filter(or_(ModelInfo.owner_id.is_(None), ModelInfo.owner_id == user_id))
+        active_model = _effective_active_model(user_id)
+        active_model_id = active_model.id if active_model else None
+        items = [_model_dict_for_user(item, active_model_id) for item in query.order_by(ModelInfo.id.desc()).all()]
+        return jsonify({"total": len(items), "items": items})
     items = [item.to_dict() for item in query.order_by(ModelInfo.id.desc()).all()]
     return jsonify({"total": len(items), "items": items})
 
@@ -260,19 +287,29 @@ def activate_model(model_id: int):
     if is_admin():
         return jsonify({"message": "管理员账号仅用于监管，不支持启用模型"}), 403
     model = ModelInfo.query.get_or_404(model_id)
-    if not is_admin() and model.owner_id not in (None, current_user_id()):
+    user_id = current_user_id()
+    if not is_admin() and model.owner_id not in (None, user_id):
         return jsonify({"message": "forbidden"}), 403
-    active_query = ModelInfo.query.filter_by(is_active=True)
-    if model.owner_id is None:
-        active_query = active_query.filter(ModelInfo.owner_id.is_(None))
-    else:
-        active_query = active_query.filter(ModelInfo.owner_id == current_user_id())
-    for item in active_query.all():
+
+    # 普通用户的“当前启用模型”优先看个人模型；切换到系统模型时先关闭个人模型。
+    personal_active_query = ModelInfo.query.filter_by(owner_id=user_id, is_active=True)
+    for item in personal_active_query.all():
         item.is_active = False
+
+    if model.owner_id is None:
+        system_active_query = ModelInfo.query.filter(ModelInfo.owner_id.is_(None), ModelInfo.is_active.is_(True))
+        for item in system_active_query.all():
+            item.is_active = False
     model.is_active = True
     record_operation("model_activate", "model_info", model.id, {"model_name": model.model_name})
     db.session.commit()
-    return jsonify({"message": "model activated", "item": model.to_dict()})
+    active_model = _effective_active_model(user_id)
+    return jsonify(
+        {
+            "message": "model activated",
+            "item": _model_dict_for_user(model, active_model.id if active_model else None),
+        }
+    )
 
 
 @models_bp.delete("/<int:model_id>")
@@ -291,11 +328,7 @@ def delete_model(model_id: int):
     db.session.delete(model)
     db.session.flush()
 
-    activated_model = None
-    if was_active:
-        activated_model = ModelInfo.query.order_by(ModelInfo.id.desc()).first()
-        if activated_model:
-            activated_model.is_active = True
+    activated_model = _effective_active_model(current_user_id()) if was_active else None
     record_operation(
         "model_delete",
         "model_info",

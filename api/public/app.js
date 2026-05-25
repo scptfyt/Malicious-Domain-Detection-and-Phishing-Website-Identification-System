@@ -230,6 +230,27 @@ function modelSourceText(item) {
   return `用户 #${item.owner_id}`;
 }
 
+function modelActions(item) {
+  if (state.user?.role === "admin") return `<span class="tag">监管查看</span>`;
+  const canActivate = item.owner_id === null || item.owner_id === undefined || item.owner_id === state.user?.id;
+  const canDelete = item.owner_id === state.user?.id;
+  if (!canActivate && !canDelete) return `<span class="tag">不可操作</span>`;
+  return `
+    ${
+      canActivate
+        ? `<button type="button" class="mini-button" data-action="activate-model" data-id="${item.id}" ${
+            item.is_active ? "disabled" : ""
+          }>启用</button>`
+        : ""
+    }
+    ${
+      canDelete
+        ? `<button type="button" class="mini-button danger" data-action="delete-model" data-id="${item.id}" data-name="${escapeHtml(item.model_name)}">删除</button>`
+        : ""
+    }
+  `;
+}
+
 function localizedPayload(data) {
   if (!data || typeof data !== "object") return data;
   return {
@@ -893,14 +914,7 @@ async function loadModelManage() {
           <td title="${item.file_path || ""}">${shortPath(item.file_path)}</td>
           <td>
             <div class="table-actions">
-              ${
-                state.user?.role === "admin" || item.owner_id === state.user?.id
-                  ? `<button type="button" class="mini-button" data-action="activate-model" data-id="${item.id}" ${
-                     item.is_active ? "disabled" : ""
-                    }>启用</button>
-                     <button type="button" class="mini-button danger" data-action="delete-model" data-id="${item.id}" data-name="${escapeHtml(item.model_name)}">删除</button>`
-                  : `<span class="tag">系统模型</span>`
-              }
+              ${modelActions(item)}
             </div>
           </td>
         </tr>`

@@ -9,6 +9,24 @@ from ..services.access_control import current_user_id, is_admin
 dashboard_bp = Blueprint("dashboard", __name__)
 
 
+def _effective_active_model():
+    if not is_admin():
+        user_id = current_user_id()
+        personal_model = (
+            ModelInfo.query.filter_by(owner_id=user_id, is_active=True)
+            .order_by(ModelInfo.id.desc())
+            .first()
+        )
+        if personal_model:
+            return personal_model
+        return (
+            ModelInfo.query.filter(ModelInfo.owner_id.is_(None), ModelInfo.is_active.is_(True))
+            .order_by(ModelInfo.id.desc())
+            .first()
+        )
+    return ModelInfo.query.filter_by(is_active=True).order_by(ModelInfo.id.desc()).first()
+
+
 @dashboard_bp.get("/api/dashboard/summary")
 def dashboard_summary():
     requested_scope = (request.args.get("scope") or "mine").lower()
@@ -17,7 +35,7 @@ def dashboard_summary():
     if stats_scope == "mine":
         detection_query = detection_query.filter_by(user_id=current_user_id())
 
-    active_model = ModelInfo.query.filter_by(is_active=True).order_by(ModelInfo.id.desc()).first()
+    active_model = _effective_active_model()
     sample_rows = (
         DomainSample.query.with_entities(DomainSample.label, func.count(DomainSample.id))
         .group_by(DomainSample.label)
