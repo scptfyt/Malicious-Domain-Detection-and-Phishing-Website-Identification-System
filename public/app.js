@@ -992,13 +992,21 @@ async function handleTrain(event) {
 }
 
 function openLocalTrainer() {
-  const launchedAt = Date.now();
+  let maybeOpened = false;
+  const markOpened = () => {
+    maybeOpened = true;
+  };
+  window.addEventListener("blur", markOpened, { once: true });
+  document.addEventListener("visibilitychange", markOpened, { once: true });
+  toast("正在尝试打开本地训练助手...");
   window.location.href = "domaintrainer://open";
   window.setTimeout(() => {
-    if (Date.now() - launchedAt < 1800) {
+    window.removeEventListener("blur", markOpened);
+    document.removeEventListener("visibilitychange", markOpened);
+    if (!maybeOpened) {
       toast("如果本地训练助手未打开，请先下载并运行安装脚本。");
     }
-  }, 1200);
+  }, 2500);
 }
 
 async function loadHistory() {

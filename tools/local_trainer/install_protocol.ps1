@@ -8,12 +8,12 @@ if (-not (Test-Path $launcher)) {
     exit 1
 }
 
-$protocolRoot = "HKCU:\Software\Classes\domaintrainer"
-New-Item -Path $protocolRoot -Force | Out-Null
-New-ItemProperty -Path $protocolRoot -Name "(default)" -Value "URL:Domain Trainer Protocol" -Force | Out-Null
-New-ItemProperty -Path $protocolRoot -Name "URL Protocol" -Value "" -Force | Out-Null
-New-Item -Path "$protocolRoot\shell\open\command" -Force | Out-Null
-Set-ItemProperty -Path "$protocolRoot\shell\open\command" -Name "(default)" -Value "`"$launcher`" `"%1`""
+$command = "`"$launcher`" `"%1`""
+
+& reg.exe add "HKCU\Software\Classes\domaintrainer" /ve /d "URL:Domain Trainer Protocol" /f | Out-Null
+& reg.exe add "HKCU\Software\Classes\domaintrainer" /v "URL Protocol" /d "" /f | Out-Null
+& reg.exe add "HKCU\Software\Classes\domaintrainer\DefaultIcon" /ve /d "`"$launcher`",0" /f | Out-Null
+& reg.exe add "HKCU\Software\Classes\domaintrainer\shell\open\command" /ve /d $command /f | Out-Null
 
 Write-Host "domaintrainer:// protocol installed successfully." -ForegroundColor Green
 Write-Host "You can now open domaintrainer://open from the web system."

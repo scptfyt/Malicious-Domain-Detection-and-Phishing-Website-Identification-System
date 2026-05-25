@@ -61,8 +61,11 @@ def download_local_trainer():
     buffer = BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
         for path in LOCAL_TRAINER_DIR.rglob("*"):
-            if path.is_file():
-                archive.write(path, path.relative_to(LOCAL_TRAINER_DIR.parent))
+            if not path.is_file():
+                continue
+            if "__pycache__" in path.parts or path.suffix in {".pyc", ".pyo"}:
+                continue
+            archive.write(path, path.relative_to(LOCAL_TRAINER_DIR.parent))
     buffer.seek(0)
     return send_file(
         buffer,

@@ -239,12 +239,13 @@ pre {
 .auth-cover h1 {
   margin: 0;
   color: #fff;
-  max-width: 760px;
-  font-size: 52px;
+  max-width: 980px;
+  font-size: 46px;
   font-weight: 800;
   line-height: 1.12;
   letter-spacing: 0;
   text-align: center;
+  white-space: nowrap;
   text-shadow: 0 18px 42px rgba(0, 0, 0, 0.32);
 }
 
@@ -1257,6 +1258,7 @@ body.admin-mode .topbar {
 
   .auth-cover h1 {
     font-size: 34px;
+    white-space: normal;
   }
 
   .sidebar {
