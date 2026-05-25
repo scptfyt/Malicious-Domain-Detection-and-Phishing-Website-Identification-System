@@ -222,24 +222,6 @@ function shortPath(value) {
   return parts.slice(-2).join("/");
 }
 
-function renderTrainingMetric(metric) {
-  if (!metric) {
-    $("#trainAccuracy").textContent = "-";
-    $("#trainPrecision").textContent = "-";
-    $("#trainRecall").textContent = "-";
-    $("#trainF1").textContent = "-";
-    $("#trainAuc").textContent = "-";
-    $("#trainConfusion").textContent = "等待训练";
-    return;
-  }
-  $("#trainAccuracy").textContent = formatMetric(metric.accuracy);
-  $("#trainPrecision").textContent = formatMetric(metric.precision_value);
-  $("#trainRecall").textContent = formatMetric(metric.recall_value);
-  $("#trainF1").textContent = formatMetric(metric.f1_value);
-  $("#trainAuc").textContent = formatMetric(metric.auc_value);
-  $("#trainConfusion").textContent = `混淆矩阵：${metric.confusion_matrix || "-"}`;
-}
-
 function localizedPayload(data) {
   if (!data || typeof data !== "object") return data;
   return {
@@ -883,14 +865,6 @@ async function loadModels() {
         </tr>`
     )
   );
-
-  const activeModel = models.items.find((item) => item.is_active);
-  if (activeModel) {
-    const metrics = await api(`/api/models/${activeModel.id}/metrics`);
-    renderTrainingMetric(metrics.items[0]);
-  } else {
-    renderTrainingMetric(null);
-  }
 }
 
 async function loadModelManage() {
@@ -949,46 +923,6 @@ async function handleModelManageClick(event) {
   await loadModelManage();
   await loadModelOptions();
   await loadDashboard();
-}
-
-async function handleTrain(event) {
-  event.preventDefault();
-  const submitButton = event.submitter || $("#trainForm button[type='submit']");
-  const originalText = submitButton ? submitButton.textContent : "";
-  try {
-    if (submitButton) {
-      submitButton.disabled = true;
-      submitButton.textContent = "训练中...";
-    }
-    const formData = new FormData();
-    formData.append("model_type", $("#modelType").value);
-    formData.append("model_name", $("#modelName").value.trim());
-    formData.append("test_size", String(Number($("#testSize").value)));
-    formData.append("max_features", String(Number($("#maxFeatures").value)));
-    formData.append("include_bootstrap", String($("#includeBootstrap").value === "true"));
-    formData.append("include_database_samples", String($("#includeDatabaseSamples").value === "true"));
-    formData.append("activate", String($("#activateModel").value === "true"));
-    const benignFile = $("#benignTrainFile").files[0];
-    const maliciousFile = $("#maliciousTrainFile").files[0];
-    if (benignFile) formData.append("benign_file", benignFile);
-    if (maliciousFile) formData.append("malicious_file", maliciousFile);
-
-    const data = await api("/api/models/train", {
-      method: "POST",
-      body: formData,
-    });
-  renderTrainingMetric(data.metric);
-  toast(`模型训练完成：${data.model.model_name}`);
-  await loadModels();
-  await loadDashboard();
-  } catch (error) {
-    toast(error.message || "模型训练失败");
-  } finally {
-    if (submitButton) {
-      submitButton.disabled = false;
-      submitButton.textContent = originalText || "开始训练";
-    }
-  }
 }
 
 function openLocalTrainer() {
@@ -1322,7 +1256,6 @@ function bindEvents() {
       ? `已选择：${file.name}，导入时将使用当前标签和类型`
       : "未选择文件，可直接粘贴文本导入";
   });
-  $("#trainForm").addEventListener("submit", handleTrain);
   $("#refreshModels").addEventListener("click", loadModels);
   $("#openLocalTrainer").addEventListener("click", openLocalTrainer);
   $("#refreshModelManage").addEventListener("click", loadModelManage);

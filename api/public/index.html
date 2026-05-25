@@ -381,73 +381,25 @@ account-check-security.xyz</textarea>
       <section class="view" id="view-models">
         <div class="content-grid two-col">
           <section class="panel">
-            <div class="panel-title">训练方式</div>
+            <div class="panel-title">本地训练助手</div>
             <div class="hint-block">
-              推荐使用本地训练助手完成模型训练，训练数据和模型文件会保存在用户自己的电脑中；网页内训练仅适用于本机运行后端服务的场景。
+              模型训练已迁移到用户本地电脑完成。请使用本地训练助手选择训练集、训练模型并保存模型文件，网页端负责查看模型版本和训练记录。
             </div>
-            <form id="trainForm">
-              <div class="field-grid">
-                <label>模型类型
-                  <select id="modelType">
-                    <option value="char_lr">字符 LR</option>
-                    <option value="char_nb">字符 NB</option>
-                    <option value="char_sgd">字符 SGD</option>
-                  </select>
-                </label>
-                <label>模型名称
-                  <input id="modelName" value="local-char-lr">
-                </label>
-                <label>测试集比例
-                  <input id="testSize" type="number" min="0.1" max="0.4" step="0.05" value="0.2">
-                </label>
-              </div>
-              <div class="field-grid">
-                <label>最大特征数
-                  <input id="maxFeatures" type="number" min="1000" step="500" value="8000">
-                </label>
-                <label>使用基础样本
-                  <select id="includeBootstrap">
-                    <option value="true">是</option>
-                    <option value="false">否</option>
-                  </select>
-                </label>
-                <label>使用数据库样本
-                  <select id="includeDatabaseSamples">
-                    <option value="true">是</option>
-                    <option value="false">否，仅使用上传文件</option>
-                  </select>
-                </label>
-              </div>
-              <div class="field-grid">
-                <label>正常样本文件
-                  <input id="benignTrainFile" type="file" accept=".txt,.csv,.tsv,.json,.jsonl,.md,.log,.html,.htm,.xml,.xlsx,.xlsm">
-                </label>
-                <label>恶意/钓鱼样本文件
-                  <input id="maliciousTrainFile" type="file" accept=".txt,.csv,.tsv,.json,.jsonl,.md,.log,.html,.htm,.xml,.xlsx,.xlsm">
-                </label>
-                <label>启用模型
-                  <select id="activateModel">
-                    <option value="true">是</option>
-                    <option value="false">否</option>
-                  </select>
-                </label>
+            <div class="local-trainer-card">
+              <div>
+                <strong>训练流程</strong>
+                <ol class="trainer-steps">
+                  <li>下载训练助手并解压到本地固定目录。</li>
+                  <li>运行安装脚本，注册本地训练协议。</li>
+                  <li>打开训练助手，选择正常样本和恶意/钓鱼样本进行训练。</li>
+                  <li>训练完成后，在本地目录查看模型文件和指标文件。</li>
+                </ol>
               </div>
               <div class="trainer-actions">
                 <button type="button" id="openLocalTrainer" class="local-trainer-button">打开本地训练助手</button>
                 <a class="button-link secondary" href="/downloads/local-trainer.zip">下载训练助手</a>
-                <button type="submit" class="secondary">网页内训练（本地服务）</button>
               </div>
-            </form>
-
-            <div class="panel-title sub-title">最新指标</div>
-            <section class="metric-grid metric-grid-5">
-              <article class="metric-card metric-small"><span>Accuracy</span><strong id="trainAccuracy">-</strong></article>
-              <article class="metric-card metric-small"><span>Precision</span><strong id="trainPrecision">-</strong></article>
-              <article class="metric-card metric-small"><span>Recall</span><strong id="trainRecall">-</strong></article>
-              <article class="metric-card metric-small"><span>F1</span><strong id="trainF1">-</strong></article>
-              <article class="metric-card metric-small"><span>AUC</span><strong id="trainAuc">-</strong></article>
-            </section>
-            <pre id="trainConfusion">等待训练</pre>
+            </div>
           </section>
 
           <section class="panel">
