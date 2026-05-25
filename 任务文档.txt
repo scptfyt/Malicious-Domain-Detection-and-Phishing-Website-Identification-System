@@ -65,3 +65,4 @@
 64. 优化 Vercel 部署启动流程，将数据库建表、默认模型写入和管理员账号初始化从应用导入阶段延后到首次 API 请求阶段执行，避免云数据库连接异常时导致首页和静态资源直接 500，并在数据库连接失败时返回明确的中文错误提示。
 65. 修复 Vercel 线上首页 404 问题，为前端首页补充 `/api/index` 和 `/api/index.py` 兼容路由，避免 Vercel 将根路径重写到函数入口后 Flask 无匹配路由导致 Not Found。
 66. 继续修复 Vercel 首页 404 问题，将 `/api/index` 与 `/api/index.py` 加入认证白名单，避免首页函数入口被登录拦截；同时将 `vercel.json` 调整为全路径重写到 `/api/index.py`，让首页、静态资源和 API 都统一交由 Flask 应用处理。
+67. 针对 Vercel 根路径仍返回 404 的情况，将 `vercel.json` 调整为更明确的 `builds + routes` 配置，所有请求统一转发到 `api/index.py`；同时将首页返回方式改为直接 `send_file` 返回 `public/index.html`，降低线上静态目录解析差异造成首页 404 的概率。

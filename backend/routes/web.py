@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from flask import Blueprint, send_from_directory
+from flask import Blueprint, send_file, send_from_directory
 
 
 web_bp = Blueprint("web", __name__)
@@ -17,7 +17,7 @@ def _frontend_dir() -> Path:
 @web_bp.get("/api/index")
 @web_bp.get("/api/index.py")
 def index():
-    return send_from_directory(_frontend_dir(), "index.html")
+    return send_file(_frontend_dir() / "index.html")
 
 
 @web_bp.get("/<path:filename>")
