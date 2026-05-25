@@ -5,7 +5,7 @@ cd /d "%~dp0"
 set "LOG_DIR=%LOCALAPPDATA%\DomainTrainer"
 if "%LOCALAPPDATA%"=="" set "LOG_DIR=%~dp0logs"
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
-set "LOG_FILE=%LOG_DIR%\trainer_launch.log"
+set "LOG_FILE=%LOG_DIR%\trainer_cmd.log"
 
 echo ==== Domain Trainer CMD Launch %date% %time% ==== > "%LOG_FILE%"
 echo Script directory: %cd% >> "%LOG_FILE%"
@@ -37,9 +37,9 @@ if not defined PYTHON_EXE (
 
 echo Python executable: %PYTHON_EXE% >> "%LOG_FILE%"
 if "%PYTHON_EXE%"=="py" (
-  py -3 launch_trainer.py >> "%LOG_FILE%" 2>&1
+  py -3 launch_trainer.py
 ) else (
-  "%PYTHON_EXE%" launch_trainer.py >> "%LOG_FILE%" 2>&1
+  "%PYTHON_EXE%" launch_trainer.py
 )
 
 set "EXIT_CODE=%errorlevel%"

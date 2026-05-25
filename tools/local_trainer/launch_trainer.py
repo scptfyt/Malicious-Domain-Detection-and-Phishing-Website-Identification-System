@@ -13,7 +13,25 @@ from tkinter import messagebox
 ROOT = Path(__file__).resolve().parent
 LOG_DIR = Path(os.getenv("LOCALAPPDATA") or ROOT) / "DomainTrainer"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
-LOG_FILE = LOG_DIR / "trainer_launch.log"
+
+
+def resolve_log_file() -> Path:
+    candidates = [
+        LOG_DIR / "trainer_launch.log",
+        ROOT / "trainer_launch.log",
+    ]
+    for candidate in candidates:
+        try:
+            candidate.parent.mkdir(parents=True, exist_ok=True)
+            with candidate.open("a", encoding="utf-8"):
+                pass
+            return candidate
+        except OSError:
+            continue
+    return Path("trainer_launch.log")
+
+
+LOG_FILE = resolve_log_file()
 
 
 def log(message: str) -> None:

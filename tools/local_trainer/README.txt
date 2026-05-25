@@ -20,8 +20,10 @@
   %LOCALAPPDATA%\DomainTrainer\protocol_install.log。
 - 确认本机已经安装 Python 3.11 或更高版本。
 - 确认已经运行 install_dependencies.cmd。
-- 双击 open_trainer.cmd 直接启动，如果窗口提示失败，请查看
-  %LOCALAPPDATA%\DomainTrainer\trainer_launch.log。
+- 双击 open_trainer.cmd 直接启动。如果窗口提示失败，请优先查看：
+  %LOCALAPPDATA%\DomainTrainer\trainer_launch.log
+  如果该文件不存在，再查看：
+  %LOCALAPPDATA%\DomainTrainer\trainer_cmd.log
 
 English
 -------
@@ -47,5 +49,7 @@ If the web button does not open the assistant:
   %LOCALAPPDATA%\DomainTrainer\protocol_install.log.
 - Make sure Python 3.11 or later is installed.
 - Make sure install_dependencies.cmd has been run.
-- Double-click open_trainer.cmd directly. If startup fails, check
-  %LOCALAPPDATA%\DomainTrainer\trainer_launch.log.
+- Double-click open_trainer.cmd directly. If startup fails, first check:
+  %LOCALAPPDATA%\DomainTrainer\trainer_launch.log
+  If that file does not exist, check:
+  %LOCALAPPDATA%\DomainTrainer\trainer_cmd.log.
