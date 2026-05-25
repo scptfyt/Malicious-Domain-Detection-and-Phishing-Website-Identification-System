@@ -6,11 +6,15 @@ from flask import Blueprint, jsonify, send_file, send_from_directory
 web_bp = Blueprint("web", __name__)
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 FRONTEND_DIR = PROJECT_ROOT / "public"
+API_FRONTEND_DIR = PROJECT_ROOT / "api" / "public"
 LEGACY_FRONTEND_DIR = PROJECT_ROOT / "frontend"
 
 
 def _frontend_dir() -> Path:
-    return FRONTEND_DIR if FRONTEND_DIR.exists() else LEGACY_FRONTEND_DIR
+    for frontend_dir in (FRONTEND_DIR, API_FRONTEND_DIR, LEGACY_FRONTEND_DIR):
+        if frontend_dir.exists():
+            return frontend_dir
+    return FRONTEND_DIR
 
 
 def _frontend_file(filename: str) -> Path:
@@ -29,6 +33,7 @@ def index():
                     "message": "前端首页文件未被部署到 Vercel 函数包中，请检查 public/index.html 是否被 includeFiles 包含。",
                     "expected_path": str(index_file),
                     "public_dir_exists": FRONTEND_DIR.exists(),
+                    "api_public_dir_exists": API_FRONTEND_DIR.exists(),
                     "legacy_frontend_dir_exists": LEGACY_FRONTEND_DIR.exists(),
                 }
             ),
