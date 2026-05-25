@@ -14,6 +14,8 @@ def _frontend_dir() -> Path:
 
 
 @web_bp.get("/")
+@web_bp.get("/api/index")
+@web_bp.get("/api/index.py")
 def index():
     return send_from_directory(_frontend_dir(), "index.html")
 
