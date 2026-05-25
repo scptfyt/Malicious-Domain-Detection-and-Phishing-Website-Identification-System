@@ -8,7 +8,7 @@ if (-not (Test-Path $launcher)) {
     exit 1
 }
 
-$command = "`"$launcher`" `"%1`""
+$command = "cmd.exe /c `"`"$launcher`" `"%1`"`""
 
 & reg.exe add "HKCU\Software\Classes\domaintrainer" /ve /d "URL:Domain Trainer Protocol" /f | Out-Null
 & reg.exe add "HKCU\Software\Classes\domaintrainer" /v "URL Protocol" /d "" /f | Out-Null
