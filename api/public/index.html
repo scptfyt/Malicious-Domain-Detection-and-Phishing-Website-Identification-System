@@ -381,9 +381,9 @@ account-check-security.xyz</textarea>
       <section class="view" id="view-models">
         <div class="content-grid two-col">
           <section class="panel">
-            <div class="panel-title">训练实验</div>
+            <div class="panel-title">训练方式</div>
             <div class="hint-block">
-              当前为“本地字符特征模型训练”，会自动从数据库样本和基础样本中训练并计算真实指标。
+              推荐使用本地训练助手完成模型训练，训练数据和模型文件会保存在用户自己的电脑中；网页内训练仅适用于本机运行后端服务的场景。
             </div>
             <form id="trainForm">
               <div class="field-grid">
@@ -432,11 +432,10 @@ account-check-security.xyz</textarea>
                   </select>
                 </label>
               </div>
-              <div class="actions">
-                <button type="submit">开始训练</button>
-                <button type="button" id="refreshModels" class="secondary">刷新</button>
-                <button type="button" id="openLocalTrainer" class="secondary">打开本地训练助手</button>
+              <div class="trainer-actions">
+                <button type="button" id="openLocalTrainer" class="local-trainer-button">打开本地训练助手</button>
                 <a class="button-link secondary" href="/downloads/local-trainer.zip">下载训练助手</a>
+                <button type="submit" class="secondary">网页内训练（本地服务）</button>
               </div>
             </form>
 
@@ -452,7 +451,10 @@ account-check-security.xyz</textarea>
           </section>
 
           <section class="panel">
-            <div class="panel-title">模型版本</div>
+            <div class="panel-title split-title">
+              <span>模型版本</span>
+              <button type="button" id="refreshModels" class="mini-button secondary">刷新</button>
+            </div>
             <div class="table-wrap compact">
               <table>
                 <thead>

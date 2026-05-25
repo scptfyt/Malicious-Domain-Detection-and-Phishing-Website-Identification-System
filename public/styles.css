@@ -927,6 +927,29 @@ body.admin-mode .topbar {
   margin: 10px 0 0;
 }
 
+.trainer-actions {
+  display: grid;
+  grid-template-columns: minmax(210px, 1.2fr) minmax(150px, 0.8fr) minmax(180px, 0.9fr);
+  gap: 10px;
+  align-items: stretch;
+  margin: 12px 0 0;
+}
+
+.trainer-actions button,
+.trainer-actions .button-link {
+  width: 100%;
+}
+
+.local-trainer-button {
+  color: #fff;
+  background: linear-gradient(180deg, #0f766e 0%, #115e59 100%);
+  box-shadow: 0 12px 22px rgba(17, 94, 89, 0.22);
+}
+
+.local-trainer-button:hover {
+  box-shadow: 0 16px 28px rgba(17, 94, 89, 0.26);
+}
+
 .table-actions {
   display: flex;
   gap: 8px;
@@ -1270,6 +1293,7 @@ body.admin-mode .topbar {
   .metric-grid,
   .two-col,
   .field-grid,
+  .trainer-actions,
   .result-strip {
     grid-template-columns: 1fr;
   }

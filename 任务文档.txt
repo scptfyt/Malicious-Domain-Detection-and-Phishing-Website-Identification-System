@@ -79,3 +79,4 @@
 78. 继续增强本地训练助手启动诊断：新增 `launch_trainer.py` 作为启动包装器，统一检查依赖、启动 GUI 主程序并在失败时弹窗提示；`open_trainer.cmd` 改为将日志写入 `%LOCALAPPDATA%\DomainTrainer\trainer_launch.log`，避免从网页协议启动时日志位置不明确；下载包接口已确认包含新启动包装器。
 79. 修复本地训练助手安装脚本无输出和启动无日志的问题：将 `install_protocol.cmd` 改为纯批处理直接注册 `domaintrainer://` 协议并写入 `protocol_install.log`，避免依赖 PowerShell；将 `open_trainer.cmd` 改为纯 ASCII 输出并统一写入 `%LOCALAPPDATA%\DomainTrainer\trainer_launch.log`，避免中文编码导致批处理解析异常；README 同步更新日志位置和排查方式。
 80. 修复本地训练助手因日志文件冲突导致的启动失败：`open_trainer.cmd` 不再将 Python 输出重定向到 `trainer_launch.log`，改为单独写入 `trainer_cmd.log`，避免与 `launch_trainer.py` 同时写同一日志文件造成 Windows 文件锁定；`launch_trainer.py` 增加日志后备路径，若 `%LOCALAPPDATA%` 不可写则回退到训练助手目录；README 同步补充两个日志文件的查看顺序。
+81. 优化本地训练助手窗口和模型中心交互：本地训练助手默认窗口调整为 920x720，增加最小尺寸和指标表格高度/列宽，避免默认打开时看不清指标区；网页模型中心将“打开本地训练助手”设为主操作，“下载训练助手”为辅助操作，“网页内训练”弱化为本地服务专用入口，并将刷新按钮移至模型版本标题栏右侧，提升页面操作层级和视觉协调性。

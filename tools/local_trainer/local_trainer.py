@@ -83,7 +83,8 @@ class TrainerApp:
     def __init__(self) -> None:
         self.root = Tk()
         self.root.title("本地模型训练助手")
-        self.root.geometry("760x560")
+        self.root.geometry("920x720")
+        self.root.minsize(860, 680)
 
         self.benign_path = StringVar()
         self.malicious_path = StringVar()
@@ -98,7 +99,7 @@ class TrainerApp:
         self._build_ui()
 
     def _build_ui(self) -> None:
-        frame = ttk.Frame(self.root, padding=20)
+        frame = ttk.Frame(self.root, padding=24)
         frame.pack(fill="both", expand=True)
 
         ttk.Label(frame, text="本地模型训练助手", font=("Microsoft YaHei UI", 18, "bold")).grid(row=0, column=0, columnspan=3, sticky="w")
@@ -130,9 +131,11 @@ class TrainerApp:
         ttk.Button(frame, text="开始训练", command=self.train).grid(row=10, column=1, sticky="ew", pady=(18, 10))
         ttk.Label(frame, textvariable=self.status, foreground="#2454c6").grid(row=11, column=0, columnspan=3, sticky="w", pady=8)
 
-        self.output = ttk.Treeview(frame, columns=("value",), show="tree headings", height=8)
+        self.output = ttk.Treeview(frame, columns=("value",), show="tree headings", height=12)
         self.output.heading("#0", text="指标")
         self.output.heading("value", text="数值")
+        self.output.column("#0", width=190, minwidth=150, stretch=False)
+        self.output.column("value", width=520, minwidth=360, stretch=True)
         self.output.grid(row=12, column=0, columnspan=3, sticky="nsew", pady=10)
 
         frame.columnconfigure(1, weight=1)
