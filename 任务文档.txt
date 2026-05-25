@@ -62,3 +62,4 @@
 61. 为 SQLPub 云数据库准备建表脚本 `sqlpub_schema.sql`，包含当前项目所需的用户、样本、模型、训练任务、评估指标、检测记录、操作日志和人工复核等数据表结构。
 62. 修正 Vercel 构建配置，移除 `vercel.json` 中不兼容的 `runtime: "python3.12"` 配置，改为使用 Vercel Python/Flask 默认运行时。
 63. 根据 Vercel Serverless Function 目录要求，新增 `api/index.py` 作为线上 Flask 入口，并将 `vercel.json` 的函数配置和路由重写改为指向 `/api/index.py`。
+64. 优化 Vercel 部署启动流程，将数据库建表、默认模型写入和管理员账号初始化从应用导入阶段延后到首次 API 请求阶段执行，避免云数据库连接异常时导致首页和静态资源直接 500，并在数据库连接失败时返回明确的中文错误提示。

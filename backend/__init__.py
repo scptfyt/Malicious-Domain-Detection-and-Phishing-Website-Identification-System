@@ -21,6 +21,7 @@ from .services.auth_service import hash_password
 def create_app(config_object: type[Config] | None = None) -> Flask:
     app = Flask(__name__)
     app.config.from_object(config_object or Config)
+    app.config["_DB_BOOTSTRAPPED"] = False
 
     db.init_app(app)
     cors.init_app(app)
@@ -36,15 +37,40 @@ def create_app(config_object: type[Config] | None = None) -> Flask:
     app.register_blueprint(logs_bp)
     app.register_blueprint(reviews_bp)
     app.register_blueprint(web_bp)
+    _install_database_bootstrap(app)
     _install_auth_guard(app)
 
-    with app.app_context():
-        db.create_all()
-        _ensure_schema()
-        _seed_default_models()
-        _ensure_demo_admin()
-
     return app
+
+
+def _install_database_bootstrap(app: Flask) -> None:
+    @app.before_request
+    def _bootstrap_database_for_api():
+        if app.config.get("_DB_BOOTSTRAPPED"):
+            return None
+        if not request.path.startswith("/api/"):
+            return None
+        if request.path.startswith("/api/health"):
+            return None
+
+        try:
+            db.create_all()
+            _ensure_schema()
+            _seed_default_models()
+            _ensure_demo_admin()
+            app.config["_DB_BOOTSTRAPPED"] = True
+        except Exception as exc:
+            db.session.rollback()
+            return (
+                jsonify(
+                    {
+                        "message": "数据库连接或初始化失败，请检查 Vercel 环境变量 DATABASE_URL 与云数据库状态。",
+                        "detail": str(exc),
+                    }
+                ),
+                503,
+            )
+        return None
 
 
 def _install_auth_guard(app: Flask) -> None:
