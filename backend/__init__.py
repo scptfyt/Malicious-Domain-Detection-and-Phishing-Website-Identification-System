@@ -77,6 +77,7 @@ def _install_auth_guard(app: Flask) -> None:
     public_api_prefixes = (
         "/api/auth",
         "/api/health",
+        "/api/index",
     )
 
     @app.before_request
