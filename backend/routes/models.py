@@ -9,6 +9,7 @@ from sqlalchemy import or_
 from ..extensions import db
 from ..models import DetectionRecord, EvaluationMetric, ModelInfo, TrainingTask
 from ..services.access_control import current_user_id, is_admin
+from ..services.batch_import_service import extract_targets_from_file
 from ..services.log_service import record_operation
 from ..services.model_training import train_local_model
 
@@ -42,7 +43,29 @@ def list_training_tasks():
 def create_training_task():
     if is_admin():
         return jsonify({"message": "管理员账号仅用于监管，不支持训练模型"}), 403
-    payload = request.get_json(silent=True) or {}
+    if request.content_type and request.content_type.startswith("multipart/form-data"):
+        payload = request.form.to_dict()
+        extra_rows = []
+        for field_name, label in (("benign_file", "benign"), ("malicious_file", "malicious")):
+            uploaded_file = request.files.get(field_name)
+            if not uploaded_file or not uploaded_file.filename:
+                continue
+            try:
+                file_meta = extract_targets_from_file(uploaded_file.filename, uploaded_file.read(), limit=10000)
+            except Exception as exc:
+                return jsonify({"message": f"训练文件解析失败：{exc}"}), 400
+            extra_rows.extend(
+                {
+                    "text": value,
+                    "label": label,
+                    "sample_type": "uploaded_train",
+                    "source": file_meta["file_name"],
+                }
+                for value in file_meta["items"]
+            )
+        payload["extra_rows"] = extra_rows
+    else:
+        payload = request.get_json(silent=True) or {}
     try:
         result = train_local_model(payload, created_by=current_user_id())
     except ValueError as exc:

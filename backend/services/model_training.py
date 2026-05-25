@@ -84,19 +84,26 @@ def normalize_text(text: str) -> str:
     return " ".join(part for part in parts if part).lower().strip() or text.lower().strip()
 
 
-def _collect_rows(include_bootstrap: bool = True) -> List[Dict[str, Any]]:
+def _collect_rows(
+    include_bootstrap: bool = True,
+    include_database_samples: bool = True,
+    extra_rows: List[Dict[str, Any]] | None = None,
+) -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
-    for sample in DomainSample.query.filter_by(is_trainable=True).all():
-        rows.append(
-            {
-                "text": sample.url or sample.domain,
-                "label": "benign" if sample.label == "benign" else "malicious",
-                "sample_type": sample.sample_type,
-                "source": sample.source or "db",
-            }
-        )
+    if include_database_samples:
+        for sample in DomainSample.query.filter_by(is_trainable=True).all():
+            rows.append(
+                {
+                    "text": sample.url or sample.domain,
+                    "label": "benign" if sample.label == "benign" else "malicious",
+                    "sample_type": sample.sample_type,
+                    "source": sample.source or "db",
+                }
+            )
     if include_bootstrap:
         rows.extend(build_bootstrap_samples())
+    if extra_rows:
+        rows.extend(extra_rows)
 
     seen = set()
     unique_rows = []
@@ -203,6 +210,7 @@ def train_local_model(payload: Dict[str, Any], created_by: int | None = None) ->
         raise ValueError("不支持的模型类型，请选择字符 LR、字符 NB 或字符 SGD")
 
     include_bootstrap = _parse_bool(payload.get("include_bootstrap"), True)
+    include_database_samples = _parse_bool(payload.get("include_database_samples"), True)
     test_size = _parse_float(payload.get("test_size"), 0.2, 0.1, 0.4)
     model_name = (payload.get("model_name") or f"{algorithm}-model").strip()
     if not model_name:
@@ -212,7 +220,11 @@ def train_local_model(payload: Dict[str, Any], created_by: int | None = None) ->
     max_features = _parse_int(payload.get("max_features"), 8000, 1000, 50000)
     feature_type = "char_tfidf"
 
-    rows = _collect_rows(include_bootstrap=include_bootstrap)
+    rows = _collect_rows(
+        include_bootstrap=include_bootstrap,
+        include_database_samples=include_database_samples,
+        extra_rows=payload.get("extra_rows") or [],
+    )
     if len(rows) < 20:
         raise ValueError("训练样本数量过少，至少需要 20 条样本")
 
@@ -275,8 +287,10 @@ def train_local_model(payload: Dict[str, Any], created_by: int | None = None) ->
         "text_strategy": "registered_domain_plus_path_query",
         "config": {
             "include_bootstrap": include_bootstrap,
+            "include_database_samples": include_database_samples,
             "test_size": test_size,
             "max_features": max_features,
+            "extra_sample_size": len(payload.get("extra_rows") or []),
         },
         "metrics": metrics,
         "sample_size": len(rows),

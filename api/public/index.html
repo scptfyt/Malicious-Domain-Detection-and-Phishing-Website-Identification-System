@@ -411,6 +411,20 @@ account-check-security.xyz</textarea>
                     <option value="false">否</option>
                   </select>
                 </label>
+                <label>使用数据库样本
+                  <select id="includeDatabaseSamples">
+                    <option value="true">是</option>
+                    <option value="false">否，仅使用上传文件</option>
+                  </select>
+                </label>
+              </div>
+              <div class="field-grid">
+                <label>正常样本文件
+                  <input id="benignTrainFile" type="file" accept=".txt,.csv,.tsv,.json,.jsonl,.md,.log,.html,.htm,.xml,.xlsx,.xlsm">
+                </label>
+                <label>恶意/钓鱼样本文件
+                  <input id="maliciousTrainFile" type="file" accept=".txt,.csv,.tsv,.json,.jsonl,.md,.log,.html,.htm,.xml,.xlsx,.xlsm">
+                </label>
                 <label>启用模型
                   <select id="activateModel">
                     <option value="true">是</option>

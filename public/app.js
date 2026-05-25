@@ -960,17 +960,23 @@ async function handleTrain(event) {
       submitButton.disabled = true;
       submitButton.textContent = "训练中...";
     }
-  const data = await api("/api/models/train", {
-    method: "POST",
-    body: JSON.stringify({
-      model_type: $("#modelType").value,
-      model_name: $("#modelName").value.trim(),
-      test_size: Number($("#testSize").value),
-      max_features: Number($("#maxFeatures").value),
-      include_bootstrap: $("#includeBootstrap").value === "true",
-      activate: $("#activateModel").value === "true",
-    }),
-  });
+    const formData = new FormData();
+    formData.append("model_type", $("#modelType").value);
+    formData.append("model_name", $("#modelName").value.trim());
+    formData.append("test_size", String(Number($("#testSize").value)));
+    formData.append("max_features", String(Number($("#maxFeatures").value)));
+    formData.append("include_bootstrap", String($("#includeBootstrap").value === "true"));
+    formData.append("include_database_samples", String($("#includeDatabaseSamples").value === "true"));
+    formData.append("activate", String($("#activateModel").value === "true"));
+    const benignFile = $("#benignTrainFile").files[0];
+    const maliciousFile = $("#maliciousTrainFile").files[0];
+    if (benignFile) formData.append("benign_file", benignFile);
+    if (maliciousFile) formData.append("malicious_file", maliciousFile);
+
+    const data = await api("/api/models/train", {
+      method: "POST",
+      body: formData,
+    });
   renderTrainingMetric(data.metric);
   toast(`模型训练完成：${data.model.model_name}`);
   await loadModels();
