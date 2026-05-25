@@ -1,4 +1,6 @@
 from pathlib import Path
+from io import BytesIO
+import zipfile
 
 from flask import Blueprint, jsonify, send_file, send_from_directory
 
@@ -10,6 +12,7 @@ FRONTEND_DIR = PROJECT_ROOT / "public"
 API_FRONTEND_DIR = PROJECT_ROOT / "api" / "public"
 PACKAGE_FRONTEND_DIR = PACKAGE_ROOT / "static_frontend"
 LEGACY_FRONTEND_DIR = PROJECT_ROOT / "frontend"
+LOCAL_TRAINER_DIR = PROJECT_ROOT / "tools" / "local_trainer"
 
 
 def _frontend_dir() -> Path:
@@ -48,3 +51,22 @@ def index():
 @web_bp.get("/<path:filename>")
 def frontend_assets(filename: str):
     return send_from_directory(_frontend_dir(), filename)
+
+
+@web_bp.get("/downloads/local-trainer.zip")
+def download_local_trainer():
+    if not LOCAL_TRAINER_DIR.exists():
+        return jsonify({"message": "local trainer package not found"}), 404
+
+    buffer = BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        for path in LOCAL_TRAINER_DIR.rglob("*"):
+            if path.is_file():
+                archive.write(path, path.relative_to(LOCAL_TRAINER_DIR.parent))
+    buffer.seek(0)
+    return send_file(
+        buffer,
+        mimetype="application/zip",
+        as_attachment=True,
+        download_name="local-trainer.zip",
+    )

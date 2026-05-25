@@ -69,15 +69,30 @@ button:active {
 }
 
 button.secondary,
-.ghost-button {
+.ghost-button,
+.button-link.secondary {
   color: var(--ink);
   background: #eef2f7;
   box-shadow: none;
 }
 
 button.secondary:hover,
-.ghost-button:hover {
+.ghost-button:hover,
+.button-link.secondary:hover {
   background: #e3eaf3;
+}
+
+.button-link {
+  min-height: 38px;
+  border-radius: 8px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  text-decoration: none;
+  background: linear-gradient(180deg, var(--blue) 0%, var(--blue-2) 100%);
+  box-shadow: 0 10px 20px rgba(36, 87, 214, 0.18);
 }
 
 .danger-button {

@@ -991,6 +991,16 @@ async function handleTrain(event) {
   }
 }
 
+function openLocalTrainer() {
+  const launchedAt = Date.now();
+  window.location.href = "domaintrainer://open";
+  window.setTimeout(() => {
+    if (Date.now() - launchedAt < 1800) {
+      toast("如果本地训练助手未打开，请先下载并运行安装脚本。");
+    }
+  }, 1200);
+}
+
 async function loadHistory() {
   const params = new URLSearchParams({
     page: "1",
@@ -1306,6 +1316,7 @@ function bindEvents() {
   });
   $("#trainForm").addEventListener("submit", handleTrain);
   $("#refreshModels").addEventListener("click", loadModels);
+  $("#openLocalTrainer").addEventListener("click", openLocalTrainer);
   $("#refreshModelManage").addEventListener("click", loadModelManage);
   $("#modelManageRows").addEventListener("click", handleModelManageClick);
   $("#refreshHistory").addEventListener("click", loadHistory);
