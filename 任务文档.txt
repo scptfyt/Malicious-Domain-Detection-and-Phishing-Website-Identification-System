@@ -69,3 +69,4 @@
 68. 修复 Vercel 首页进入 500 的部署问题，在 `vercel.json` 的 Python 构建配置中显式包含 `backend/**` 与 `public/**`，确保 Serverless 函数包内包含后端代码和前端首页资源；同时为首页路由增加前端文件缺失诊断提示，便于定位线上部署文件未打包的问题。
 69. 针对 Vercel 函数包中 `public/` 目录未被包含的问题，将前端静态资源复制到 `api/public/` 作为线上部署副本，并调整首页路由按 `public/`、`api/public/`、`frontend/` 的顺序查找前端文件，确保 Vercel Python 函数能够访问首页、样式和脚本资源。
 70. 继续处理 Vercel 函数包缺少前端资源的问题，将前端首页、样式和脚本复制到 `backend/static_frontend/`，并调整首页路由增加后端包内前端资源目录查找；同时在 `vercel.json` 的 includeFiles 中补充 `backend/static_frontend/**` 与 `api/public/**`，提高线上函数包包含静态资源的稳定性。
+71. 修复 Vercel 线上验证码图片无法加载的问题，将 `/api/auth/captcha-image` 排除在首次数据库初始化触发范围之外，避免验证码这类不依赖数据库的图片接口因云数据库连接异常或延迟而返回 JSON 错误，导致浏览器显示破图。

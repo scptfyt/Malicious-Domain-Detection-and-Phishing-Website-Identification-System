@@ -52,6 +52,8 @@ def _install_database_bootstrap(app: Flask) -> None:
             return None
         if request.path.startswith("/api/health"):
             return None
+        if request.path.startswith("/api/auth/captcha-image"):
+            return None
 
         try:
             db.create_all()
