@@ -8,6 +8,7 @@ from pathlib import Path
 
 from flask import Blueprint, jsonify, request
 from sqlalchemy import or_
+from sqlalchemy.orm import defer
 import joblib
 
 from ..extensions import db
@@ -23,6 +24,10 @@ MAX_IMPORTED_MODEL_BYTES = 8 * 1024 * 1024
 
 
 models_bp = Blueprint("models", __name__, url_prefix="/api/models")
+
+
+def _model_metadata_query():
+    return ModelInfo.query.options(defer(ModelInfo.model_blob))
 
 
 def _safe_name(value: str, fallback: str) -> str:
@@ -58,14 +63,14 @@ def _metric_value(metrics: dict, key: str):
 def _effective_active_model(user_id: int | None) -> ModelInfo | None:
     if user_id:
         personal_model = (
-            ModelInfo.query.filter_by(owner_id=user_id, is_active=True)
+            _model_metadata_query().filter_by(owner_id=user_id, is_active=True)
             .order_by(ModelInfo.id.desc())
             .first()
         )
         if personal_model:
             return personal_model
     return (
-        ModelInfo.query.filter(ModelInfo.owner_id.is_(None), ModelInfo.is_active.is_(True))
+        _model_metadata_query().filter(ModelInfo.owner_id.is_(None), ModelInfo.is_active.is_(True))
         .order_by(ModelInfo.id.desc())
         .first()
     )
@@ -80,7 +85,7 @@ def _model_dict_for_user(model: ModelInfo, active_model_id: int | None) -> dict:
 
 @models_bp.get("")
 def list_models():
-    query = ModelInfo.query
+    query = _model_metadata_query()
     if not is_admin():
         user_id = current_user_id()
         query = query.filter(or_(ModelInfo.owner_id.is_(None), ModelInfo.owner_id == user_id))
@@ -207,7 +212,7 @@ def import_local_model():
     dataset_size = int(artifact.get("sample_size") or metrics.get("dataset_size") or 0)
 
     if activate:
-        active_query = ModelInfo.query.filter_by(is_active=True).filter(ModelInfo.owner_id == user_id)
+        active_query = _model_metadata_query().filter_by(is_active=True).filter(ModelInfo.owner_id == user_id)
         for item in active_query.all():
             item.is_active = False
 
@@ -286,18 +291,18 @@ def import_local_model():
 def activate_model(model_id: int):
     if is_admin():
         return jsonify({"message": "管理员账号仅用于监管，不支持启用模型"}), 403
-    model = ModelInfo.query.get_or_404(model_id)
+    model = _model_metadata_query().get_or_404(model_id)
     user_id = current_user_id()
     if not is_admin() and model.owner_id not in (None, user_id):
         return jsonify({"message": "forbidden"}), 403
 
     # 普通用户的“当前启用模型”优先看个人模型；切换到系统模型时先关闭个人模型。
-    personal_active_query = ModelInfo.query.filter_by(owner_id=user_id, is_active=True)
+    personal_active_query = _model_metadata_query().filter_by(owner_id=user_id, is_active=True)
     for item in personal_active_query.all():
         item.is_active = False
 
     if model.owner_id is None:
-        system_active_query = ModelInfo.query.filter(ModelInfo.owner_id.is_(None), ModelInfo.is_active.is_(True))
+        system_active_query = _model_metadata_query().filter(ModelInfo.owner_id.is_(None), ModelInfo.is_active.is_(True))
         for item in system_active_query.all():
             item.is_active = False
     model.is_active = True
@@ -316,7 +321,7 @@ def activate_model(model_id: int):
 def delete_model(model_id: int):
     if is_admin():
         return jsonify({"message": "管理员账号仅用于监管，不支持删除模型"}), 403
-    model = ModelInfo.query.get_or_404(model_id)
+    model = _model_metadata_query().get_or_404(model_id)
     if not is_admin() and model.owner_id != current_user_id():
         return jsonify({"message": "forbidden"}), 403
     delete_file = bool((request.get_json(silent=True) or {}).get("delete_file", False))
@@ -362,7 +367,7 @@ def delete_model(model_id: int):
 
 @models_bp.get("/<int:model_id>/metrics")
 def get_model_metrics(model_id: int):
-    model = ModelInfo.query.get_or_404(model_id)
+    model = _model_metadata_query().get_or_404(model_id)
     if not is_admin() and model.owner_id not in (None, current_user_id()):
         return jsonify({"message": "forbidden"}), 403
     metrics = [

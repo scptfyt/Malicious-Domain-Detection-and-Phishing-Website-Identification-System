@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 
 from sqlalchemy import func
+from sqlalchemy.orm import defer
 
 from ..models import DetectionRecord, DomainSample, EvaluationMetric, ModelInfo, TrainingTask
 from ..services.access_control import current_user_id, is_admin
@@ -13,18 +14,25 @@ def _effective_active_model():
     if not is_admin():
         user_id = current_user_id()
         personal_model = (
-            ModelInfo.query.filter_by(owner_id=user_id, is_active=True)
+            ModelInfo.query.options(defer(ModelInfo.model_blob))
+            .filter_by(owner_id=user_id, is_active=True)
             .order_by(ModelInfo.id.desc())
             .first()
         )
         if personal_model:
             return personal_model
         return (
-            ModelInfo.query.filter(ModelInfo.owner_id.is_(None), ModelInfo.is_active.is_(True))
+            ModelInfo.query.options(defer(ModelInfo.model_blob))
+            .filter(ModelInfo.owner_id.is_(None), ModelInfo.is_active.is_(True))
             .order_by(ModelInfo.id.desc())
             .first()
         )
-    return ModelInfo.query.filter_by(is_active=True).order_by(ModelInfo.id.desc()).first()
+    return (
+        ModelInfo.query.options(defer(ModelInfo.model_blob))
+        .filter_by(is_active=True)
+        .order_by(ModelInfo.id.desc())
+        .first()
+    )
 
 
 @dashboard_bp.get("/api/dashboard/summary")

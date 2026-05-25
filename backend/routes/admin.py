@@ -3,6 +3,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, request
 
 from sqlalchemy import func
+from sqlalchemy.orm import defer
 
 from ..extensions import db
 from ..models import DetectionRecord, ModelInfo, ReviewFeedback, User
@@ -114,7 +115,13 @@ def user_detail(user_id: int):
         .limit(50)
         .all()
     ]
-    models = [item.to_dict() for item in ModelInfo.query.filter_by(owner_id=user.id).order_by(ModelInfo.id.desc()).all()]
+    models = [
+        item.to_dict()
+        for item in ModelInfo.query.options(defer(ModelInfo.model_blob))
+        .filter_by(owner_id=user.id)
+        .order_by(ModelInfo.id.desc())
+        .all()
+    ]
     return jsonify(
         {
             "user": {

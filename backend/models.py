@@ -62,9 +62,16 @@ class ModelInfo(db.Model, TimestampMixin):
     remark = db.Column(db.String(255))
 
     def to_dict(self):
-        data = super().to_dict()
-        data.pop("model_blob", None)
-        data["has_model_blob"] = bool(self.model_blob)
+        data = {}
+        for column in inspect(self).mapper.column_attrs:
+            if column.key == "model_blob":
+                continue
+            value = getattr(self, column.key)
+            if isinstance(value, datetime):
+                data[column.key] = value.isoformat()
+            else:
+                data[column.key] = value
+        data["has_model_blob"] = self.storage_type == "database"
         return data
 
 
