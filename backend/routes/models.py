@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import io
 import json
+import re
+from datetime import datetime
 from pathlib import Path
 
 from flask import Blueprint, jsonify, request
 from sqlalchemy import or_
+import joblib
 
 from ..extensions import db
 from ..models import DetectionRecord, EvaluationMetric, ModelInfo, TrainingTask
@@ -15,9 +19,40 @@ from ..services.model_training import train_local_model
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+MAX_IMPORTED_MODEL_BYTES = 8 * 1024 * 1024
 
 
 models_bp = Blueprint("models", __name__, url_prefix="/api/models")
+
+
+def _safe_name(value: str, fallback: str) -> str:
+    text = (value or fallback).strip()
+    text = re.sub(r"\s+", "-", text)
+    return text[:64] or fallback
+
+
+def _safe_version(value: str | None) -> str:
+    text = (value or "").strip()
+    if not text:
+        text = f"local-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+    return re.sub(r"[^A-Za-z0-9_.-]", "-", text)[:32]
+
+
+def _parse_metrics(raw_text: str | None, artifact: dict) -> dict:
+    if raw_text:
+        parsed = json.loads(raw_text)
+        if isinstance(parsed, dict):
+            return parsed
+    metrics = artifact.get("metrics")
+    return metrics if isinstance(metrics, dict) else {}
+
+
+def _metric_value(metrics: dict, key: str):
+    value = metrics.get(key)
+    try:
+        return None if value is None else float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 @models_bp.get("")
@@ -97,6 +132,127 @@ def create_training_task():
             "algorithm": result["algorithm"],
         }
     ), 201
+
+
+@models_bp.post("/import-local")
+def import_local_model():
+    if is_admin():
+        return jsonify({"message": "管理员账号仅用于监管，不支持导入模型"}), 403
+
+    uploaded_model = request.files.get("model_file")
+    if not uploaded_model or not uploaded_model.filename:
+        return jsonify({"message": "请先选择本地训练助手生成的 .joblib 模型文件"}), 400
+
+    raw_model = uploaded_model.read()
+    if not raw_model:
+        return jsonify({"message": "模型文件为空，请重新选择文件"}), 400
+    if len(raw_model) > MAX_IMPORTED_MODEL_BYTES:
+        limit_mb = MAX_IMPORTED_MODEL_BYTES // 1024 // 1024
+        return jsonify({"message": f"模型文件过大，当前导入上限为 {limit_mb}MB，请在训练助手中降低最大特征数后重新训练"}), 400
+
+    try:
+        artifact = joblib.load(io.BytesIO(raw_model))
+    except Exception as exc:
+        return jsonify({"message": f"模型文件读取失败，请确认文件由本地训练助手生成：{exc}"}), 400
+    if not isinstance(artifact, dict) or artifact.get("pipeline") is None:
+        return jsonify({"message": "模型文件格式不正确，未找到可调用的预测管道"}), 400
+
+    metric_file = request.files.get("metric_file")
+    metric_text = None
+    if metric_file and metric_file.filename:
+        try:
+            metric_text = metric_file.read().decode("utf-8")
+        except UnicodeDecodeError:
+            return jsonify({"message": "指标文件需要是 UTF-8 编码的 JSON 文件"}), 400
+
+    try:
+        metrics = _parse_metrics(metric_text, artifact)
+    except json.JSONDecodeError:
+        return jsonify({"message": "指标文件 JSON 格式不正确"}), 400
+
+    user_id = current_user_id()
+    algorithm = str(artifact.get("algorithm") or request.form.get("model_type") or "char_lr")[:64]
+    feature_type = str(artifact.get("feature_type") or "char_tfidf")[:64]
+    file_stem = Path(uploaded_model.filename).stem
+    model_name = _safe_name(request.form.get("model_name") or artifact.get("model_name") or file_stem, "local-imported-model")
+    version = _safe_version(str(artifact.get("version") or ""))
+    activate = str(request.form.get("activate", "true")).strip().lower() in {"1", "true", "yes", "on", "是"}
+    dataset_size = int(artifact.get("sample_size") or metrics.get("dataset_size") or 0)
+
+    if activate:
+        active_query = ModelInfo.query.filter_by(is_active=True).filter(ModelInfo.owner_id == user_id)
+        for item in active_query.all():
+            item.is_active = False
+
+    task = TrainingTask(
+        model_type=algorithm,
+        dataset_size=dataset_size,
+        train_config=json.dumps(
+            {
+                "source": "local_trainer_import",
+                "original_file": uploaded_model.filename,
+                "feature_type": feature_type,
+                "storage_type": "database",
+            },
+            ensure_ascii=False,
+        ),
+        status="completed",
+        started_at=datetime.utcnow(),
+        finished_at=datetime.utcnow(),
+        created_by=user_id,
+        log_text="imported model trained by local trainer",
+    )
+    db.session.add(task)
+    db.session.flush()
+
+    model = ModelInfo(
+        model_name=model_name,
+        model_type=algorithm,
+        version=version,
+        file_path="database://pending",
+        feature_type=feature_type,
+        storage_type="database",
+        model_blob=raw_model,
+        owner_id=user_id,
+        is_active=activate,
+        remark="user imported local trainer model",
+    )
+    db.session.add(model)
+    db.session.flush()
+    model.file_path = f"database://model_info/{model.id}"
+
+    metric = EvaluationMetric(
+        model_id=model.id,
+        task_id=task.id,
+        accuracy=_metric_value(metrics, "accuracy"),
+        precision_value=_metric_value(metrics, "precision_value"),
+        recall_value=_metric_value(metrics, "recall_value"),
+        f1_value=_metric_value(metrics, "f1_value"),
+        auc_value=_metric_value(metrics, "auc_value"),
+        confusion_matrix=json.dumps(metrics.get("confusion_matrix"), ensure_ascii=False)
+        if metrics.get("confusion_matrix") is not None
+        else None,
+    )
+    db.session.add(metric)
+    record_operation(
+        "model_import_local",
+        "model_info",
+        model.id,
+        {"model_name": model.model_name, "model_type": model.model_type, "storage_type": "database"},
+    )
+    db.session.commit()
+
+    return (
+        jsonify(
+            {
+                "message": "local model imported",
+                "model": model.to_dict(),
+                "task": task.to_dict(),
+                "metric": metric.to_dict(),
+            }
+        ),
+        201,
+    )
 
 
 @models_bp.put("/<int:model_id>/activate")

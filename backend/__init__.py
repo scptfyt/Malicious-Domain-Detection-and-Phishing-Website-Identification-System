@@ -122,6 +122,24 @@ def _ensure_schema() -> None:
             db.session.commit()
         except Exception:
             db.session.rollback()
+    if "storage_type" not in model_columns:
+        try:
+            db.session.execute(
+                text(
+                    "ALTER TABLE model_info "
+                    "ADD COLUMN storage_type VARCHAR(32) NOT NULL DEFAULT 'file'"
+                )
+            )
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+    if "model_blob" not in model_columns:
+        blob_type = "LONGBLOB" if db.engine.dialect.name == "mysql" else "BLOB"
+        try:
+            db.session.execute(text(f"ALTER TABLE model_info ADD COLUMN model_blob {blob_type} NULL"))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
 
 
 def _seed_default_models() -> None:

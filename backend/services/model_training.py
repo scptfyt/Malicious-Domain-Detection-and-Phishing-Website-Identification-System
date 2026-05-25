@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import io
 import os
 import re
 from dataclasses import dataclass
@@ -140,9 +141,21 @@ def _safe_auc(y_true, y_score):
 
 
 def load_artifact(model_info: ModelInfo):
-    key = (int(model_info.id), str(model_info.version), str(model_info.file_path))
+    key = (
+        int(model_info.id),
+        str(model_info.version),
+        str(model_info.file_path),
+        str(getattr(model_info, "storage_type", "file")),
+    )
     if key in _ARTIFACT_CACHE:
         return _ARTIFACT_CACHE[key]
+
+    if getattr(model_info, "storage_type", "file") == "database":
+        if not model_info.model_blob:
+            return None
+        artifact = joblib.load(io.BytesIO(model_info.model_blob))
+        _ARTIFACT_CACHE[key] = artifact
+        return artifact
 
     path = Path(model_info.file_path)
     if not path.is_absolute():

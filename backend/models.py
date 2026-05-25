@@ -55,9 +55,17 @@ class ModelInfo(db.Model, TimestampMixin):
     version = db.Column(db.String(32), nullable=False)
     file_path = db.Column(db.String(255), nullable=False)
     feature_type = db.Column(db.String(64), nullable=False)
+    storage_type = db.Column(db.String(32), nullable=False, default="file")
+    model_blob = db.Column(db.LargeBinary)
     owner_id = db.Column(db.Integer)
     is_active = db.Column(db.Boolean, default=False, nullable=False)
     remark = db.Column(db.String(255))
+
+    def to_dict(self):
+        data = super().to_dict()
+        data.pop("model_blob", None)
+        data["has_model_blob"] = bool(self.model_blob)
+        return data
 
 
 class TrainingTask(db.Model, TimestampMixin):

@@ -38,6 +38,8 @@ CREATE TABLE IF NOT EXISTS `model_info` (
   `version` VARCHAR(32) NOT NULL,
   `file_path` VARCHAR(255) NOT NULL,
   `feature_type` VARCHAR(64) NOT NULL,
+  `storage_type` VARCHAR(32) NOT NULL DEFAULT 'file',
+  `model_blob` LONGBLOB NULL,
   `owner_id` INT NULL,
   `is_active` TINYINT(1) NOT NULL DEFAULT 0,
   `remark` VARCHAR(255) NULL,

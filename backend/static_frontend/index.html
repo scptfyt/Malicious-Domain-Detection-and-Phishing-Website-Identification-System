@@ -383,7 +383,7 @@ account-check-security.xyz</textarea>
           <section class="panel">
             <div class="panel-title">本地训练助手</div>
             <div class="hint-block">
-              模型训练已迁移到用户本地电脑完成。请使用本地训练助手选择训练集、训练模型并保存模型文件，网页端负责查看模型版本和训练记录。
+              模型训练已迁移到用户本地电脑完成。训练完成后，将本地生成的模型文件导入系统，即可在单条检测和批量检测中选择使用。
             </div>
             <div class="local-trainer-card">
               <div>
@@ -400,6 +400,34 @@ account-check-security.xyz</textarea>
                 <a class="button-link secondary" href="/downloads/local-trainer.zip">下载训练助手</a>
               </div>
             </div>
+            <form id="localModelImportForm" class="local-model-import-form">
+              <div class="import-form-head">
+                <strong>导入本地训练模型</strong>
+                <span>仅当前账号可见和使用</span>
+              </div>
+              <label>
+                模型名称
+                <input id="localModelName" name="model_name" placeholder="例如：my-phishing-char-lr">
+              </label>
+              <div class="local-import-grid">
+                <label class="file-picker">
+                  模型文件（.joblib）
+                  <input id="localModelFile" name="model_file" type="file" accept=".joblib" required>
+                </label>
+                <label class="file-picker">
+                  指标文件（可选 .json）
+                  <input id="localMetricFile" name="metric_file" type="file" accept=".json">
+                </label>
+              </div>
+              <label class="checkline">
+                <input id="localModelActivate" name="activate" type="checkbox" checked>
+                导入后设为当前账号启用模型
+              </label>
+              <div class="import-form-actions">
+                <span id="localModelFileInfo" class="file-info">请选择本地训练助手生成的 .joblib 文件</span>
+                <button type="submit" id="importLocalModel">导入并登记模型</button>
+              </div>
+            </form>
           </section>
 
           <section class="panel">
@@ -414,6 +442,7 @@ account-check-security.xyz</textarea>
                     <th>名称</th>
                     <th>类型</th>
                     <th>版本</th>
+                    <th>来源</th>
                     <th>状态</th>
                   </tr>
                 </thead>

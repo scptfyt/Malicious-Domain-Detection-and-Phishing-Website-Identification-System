@@ -70,6 +70,7 @@ const textMap = {
   dataset_import: "样本导入",
   dataset_label_update: "标签修改",
   model_train: "模型训练",
+  model_import_local: "本地模型导入",
   model_activate: "模型启用",
   model_delete: "模型删除",
   model_seed_demo: "演示模型创建",
@@ -218,8 +219,15 @@ function formatMetric(value) {
 
 function shortPath(value) {
   if (!value) return "-";
+  if (String(value).startsWith("database://")) return "数据库存储";
   const parts = String(value).split(/[\\/]/);
   return parts.slice(-2).join("/");
+}
+
+function modelSourceText(item) {
+  if (!item.owner_id) return "系统默认";
+  if (item.owner_id === state.user?.id) return item.storage_type === "database" ? "我的导入" : "我的训练";
+  return `用户 #${item.owner_id}`;
 }
 
 function localizedPayload(data) {
@@ -843,9 +851,10 @@ async function loadModels() {
     models.items.map(
       (item) => `
         <tr>
-          <td>${item.model_name}</td>
-          <td>${item.model_type}</td>
-          <td>${item.version}</td>
+          <td>${escapeHtml(item.model_name)}</td>
+          <td>${escapeHtml(item.model_type)}</td>
+          <td>${escapeHtml(item.version)}</td>
+          <td>${modelSourceText(item)}</td>
           <td>${tag(item.is_active ? "active" : "inactive")}</td>
         </tr>`
     )
@@ -876,10 +885,10 @@ async function loadModelManage() {
       (item) => `
         <tr>
           <td>${item.id}</td>
-          <td>${item.model_name}</td>
-          <td>${item.model_type}</td>
-          <td>${item.feature_type}</td>
-          <td>${item.owner_id ? (item.owner_id === state.user?.id ? "我的模型" : `用户 #${item.owner_id}`) : "系统模型"}</td>
+          <td>${escapeHtml(item.model_name)}</td>
+          <td>${escapeHtml(item.model_type)}</td>
+          <td>${escapeHtml(item.feature_type)}</td>
+          <td>${modelSourceText(item)}</td>
           <td>${tag(item.is_active ? "active" : "inactive")}</td>
           <td title="${item.file_path || ""}">${shortPath(item.file_path)}</td>
           <td>
@@ -887,9 +896,9 @@ async function loadModelManage() {
               ${
                 state.user?.role === "admin" || item.owner_id === state.user?.id
                   ? `<button type="button" class="mini-button" data-action="activate-model" data-id="${item.id}" ${
-                      item.is_active ? "disabled" : ""
+                     item.is_active ? "disabled" : ""
                     }>启用</button>
-                     <button type="button" class="mini-button danger" data-action="delete-model" data-id="${item.id}" data-name="${item.model_name}">删除</button>`
+                     <button type="button" class="mini-button danger" data-action="delete-model" data-id="${item.id}" data-name="${escapeHtml(item.model_name)}">删除</button>`
                   : `<span class="tag">系统模型</span>`
               }
             </div>
@@ -941,6 +950,38 @@ function openLocalTrainer() {
       toast("如果本地训练助手未打开，请先下载并运行安装脚本。");
     }
   }, 2500);
+}
+
+async function handleLocalModelImport(event) {
+  event.preventDefault();
+  const modelFile = $("#localModelFile").files?.[0];
+  if (!modelFile) {
+    toast("请先选择 .joblib 模型文件");
+    return;
+  }
+  const body = new FormData();
+  body.append("model_file", modelFile);
+  const metricFile = $("#localMetricFile").files?.[0];
+  if (metricFile) body.append("metric_file", metricFile);
+  body.append("model_name", $("#localModelName").value.trim());
+  body.append("activate", $("#localModelActivate").checked ? "true" : "false");
+
+  const button = $("#importLocalModel");
+  button.disabled = true;
+  button.textContent = "导入中...";
+  try {
+    const data = await api("/api/models/import-local", { method: "POST", body });
+    toast(`已导入模型：${data.model?.model_name || modelFile.name}`);
+    $("#localModelImportForm").reset();
+    $("#localModelActivate").checked = true;
+    $("#localModelFileInfo").textContent = "请选择本地训练助手生成的 .joblib 文件";
+    await loadModels();
+    await loadModelOptions();
+    await loadDashboard();
+  } finally {
+    button.disabled = false;
+    button.textContent = "导入并登记模型";
+  }
 }
 
 async function loadHistory() {
@@ -1258,6 +1299,21 @@ function bindEvents() {
   });
   $("#refreshModels").addEventListener("click", loadModels);
   $("#openLocalTrainer").addEventListener("click", openLocalTrainer);
+  $("#localModelImportForm").addEventListener("submit", handleLocalModelImport);
+  $("#localModelFile").addEventListener("change", () => {
+    const modelFile = $("#localModelFile").files?.[0];
+    const metricFile = $("#localMetricFile").files?.[0];
+    $("#localModelFileInfo").textContent = modelFile
+      ? `已选择：${modelFile.name}${metricFile ? `，指标：${metricFile.name}` : ""}`
+      : "请选择本地训练助手生成的 .joblib 文件";
+  });
+  $("#localMetricFile").addEventListener("change", () => {
+    const modelFile = $("#localModelFile").files?.[0];
+    const metricFile = $("#localMetricFile").files?.[0];
+    $("#localModelFileInfo").textContent = modelFile
+      ? `已选择：${modelFile.name}${metricFile ? `，指标：${metricFile.name}` : ""}`
+      : "请选择本地训练助手生成的 .joblib 文件";
+  });
   $("#refreshModelManage").addEventListener("click", loadModelManage);
   $("#modelManageRows").addEventListener("click", handleModelManageClick);
   $("#refreshHistory").addEventListener("click", loadHistory);
