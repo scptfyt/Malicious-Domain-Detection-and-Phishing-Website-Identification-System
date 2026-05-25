@@ -19,7 +19,8 @@
 - 重新运行 install_protocol.cmd。
 - 确认本机已经安装 Python 3.11 或更高版本。
 - 确认已经运行 install_dependencies.cmd。
-- 双击 open_trainer.cmd 直接启动，如果窗口提示失败，请查看同目录下的 trainer_launch.log。
+- 双击 open_trainer.cmd 直接启动，如果窗口提示失败，请查看
+  %LOCALAPPDATA%\DomainTrainer\trainer_launch.log。
 
 English
 -------
@@ -45,4 +46,4 @@ If the web button does not open the assistant:
 - Make sure Python 3.11 or later is installed.
 - Make sure install_dependencies.cmd has been run.
 - Double-click open_trainer.cmd directly. If startup fails, check
-  trainer_launch.log in the same folder.
+  %LOCALAPPDATA%\DomainTrainer\trainer_launch.log.
