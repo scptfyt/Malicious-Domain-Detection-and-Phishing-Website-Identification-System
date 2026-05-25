@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask, jsonify, request, session
 from sqlalchemy import inspect, text
 
@@ -53,6 +55,8 @@ def _install_database_bootstrap(app: Flask) -> None:
         if request.path.startswith("/api/health"):
             return None
         if request.path.startswith("/api/auth/captcha-image"):
+            return None
+        if os.getenv("VERCEL") == "1" and request.path.startswith("/api/models/train"):
             return None
 
         try:

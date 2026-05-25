@@ -934,6 +934,13 @@ async function handleModelManageClick(event) {
 
 async function handleTrain(event) {
   event.preventDefault();
+  const submitButton = event.submitter || $("#trainForm button[type='submit']");
+  const originalText = submitButton ? submitButton.textContent : "";
+  try {
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = "训练中...";
+    }
   const data = await api("/api/models/train", {
     method: "POST",
     body: JSON.stringify({
@@ -949,6 +956,14 @@ async function handleTrain(event) {
   toast(`模型训练完成：${data.model.model_name}`);
   await loadModels();
   await loadDashboard();
+  } catch (error) {
+    toast(error.message || "模型训练失败");
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = originalText || "开始训练";
+    }
+  }
 }
 
 async function loadHistory() {

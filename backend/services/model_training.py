@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -28,8 +30,48 @@ from .deep_model_service import predict_with_deep_model
 from .domain_service import parse_target
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-ARTIFACT_DIR = PROJECT_ROOT / "artifacts" / "models"
+ARTIFACT_DIR = Path(os.getenv("MODEL_ARTIFACT_DIR", PROJECT_ROOT / "artifacts" / "models"))
 _ARTIFACT_CACHE: dict[tuple[int, str, str], Dict[str, Any]] = {}
+SUPPORTED_ALGORITHMS = {"char_lr", "char_nb", "char_sgd"}
+
+
+def _parse_bool(value: Any, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"1", "true", "yes", "y", "on", "是"}
+
+
+def _parse_float(value: Any, default: float, minimum: float, maximum: float) -> float:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        parsed = default
+    return max(minimum, min(parsed, maximum))
+
+
+def _parse_int(value: Any, default: int, minimum: int, maximum: int) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        parsed = default
+    return max(minimum, min(parsed, maximum))
+
+
+def _safe_version(value: Any) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return f"v{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+    return re.sub(r"[^A-Za-z0-9_.-]", "-", raw)[:64]
+
+
+def _ensure_training_runtime() -> None:
+    if os.getenv("VERCEL") == "1":
+        raise RuntimeError(
+            "线上 Vercel Serverless 环境不支持在线训练并持久化模型文件。请在本地运行训练，"
+            "或改用带持久化磁盘/对象存储的后端服务器。"
+        )
 
 
 def normalize_text(text: str) -> str:
@@ -155,12 +197,19 @@ def predict_with_model(text: str, model_info: ModelInfo | None):
 
 
 def train_local_model(payload: Dict[str, Any], created_by: int | None = None) -> Dict[str, Any]:
+    _ensure_training_runtime()
     algorithm = (payload.get("model_type") or "char_lr").strip().lower()
-    include_bootstrap = bool(payload.get("include_bootstrap", True))
-    test_size = float(payload.get("test_size", 0.2))
+    if algorithm not in SUPPORTED_ALGORITHMS:
+        raise ValueError("不支持的模型类型，请选择字符 LR、字符 NB 或字符 SGD")
+
+    include_bootstrap = _parse_bool(payload.get("include_bootstrap"), True)
+    test_size = _parse_float(payload.get("test_size"), 0.2, 0.1, 0.4)
     model_name = (payload.get("model_name") or f"{algorithm}-model").strip()
-    version = (payload.get("version") or f"v{datetime.utcnow().strftime('%Y%m%d%H%M%S')}").strip()
-    activate = bool(payload.get("activate", True))
+    if not model_name:
+        raise ValueError("模型名称不能为空")
+    version = _safe_version(payload.get("version"))
+    activate = _parse_bool(payload.get("activate"), True)
+    max_features = _parse_int(payload.get("max_features"), 8000, 1000, 50000)
     feature_type = "char_tfidf"
 
     rows = _collect_rows(include_bootstrap=include_bootstrap)
@@ -188,7 +237,7 @@ def train_local_model(payload: Dict[str, Any], created_by: int | None = None) ->
                     analyzer="char",
                     ngram_range=(3, 5),
                     lowercase=True,
-                    max_features=int(payload.get("max_features", 8000)),
+                    max_features=max_features,
                 ),
             ),
             ("clf", _make_classifier(algorithm)),
@@ -227,7 +276,7 @@ def train_local_model(payload: Dict[str, Any], created_by: int | None = None) ->
         "config": {
             "include_bootstrap": include_bootstrap,
             "test_size": test_size,
-            "max_features": int(payload.get("max_features", 8000)),
+            "max_features": max_features,
         },
         "metrics": metrics,
         "sample_size": len(rows),
@@ -248,7 +297,12 @@ def train_local_model(payload: Dict[str, Any], created_by: int | None = None) ->
     db.session.flush()
 
     if activate:
-        for item in ModelInfo.query.filter_by(is_active=True).all():
+        active_query = ModelInfo.query.filter_by(is_active=True)
+        if created_by is None:
+            active_query = active_query.filter(ModelInfo.owner_id.is_(None))
+        else:
+            active_query = active_query.filter(ModelInfo.owner_id == created_by)
+        for item in active_query.all():
             item.is_active = False
 
     model = ModelInfo(

@@ -46,7 +46,14 @@ def create_training_task():
     try:
         result = train_local_model(payload, created_by=current_user_id())
     except ValueError as exc:
+        db.session.rollback()
         return jsonify({"message": str(exc)}), 400
+    except RuntimeError as exc:
+        db.session.rollback()
+        return jsonify({"message": str(exc)}), 503
+    except Exception as exc:
+        db.session.rollback()
+        return jsonify({"message": f"模型训练失败：{exc}"}), 500
     record_operation(
         "model_train",
         "model_info",
@@ -74,9 +81,14 @@ def activate_model(model_id: int):
     if is_admin():
         return jsonify({"message": "管理员账号仅用于监管，不支持启用模型"}), 403
     model = ModelInfo.query.get_or_404(model_id)
-    if not is_admin() and model.owner_id != current_user_id():
+    if not is_admin() and model.owner_id not in (None, current_user_id()):
         return jsonify({"message": "forbidden"}), 403
-    for item in ModelInfo.query.filter_by(is_active=True).all():
+    active_query = ModelInfo.query.filter_by(is_active=True)
+    if model.owner_id is None:
+        active_query = active_query.filter(ModelInfo.owner_id.is_(None))
+    else:
+        active_query = active_query.filter(ModelInfo.owner_id == current_user_id())
+    for item in active_query.all():
         item.is_active = False
     model.is_active = True
     record_operation("model_activate", "model_info", model.id, {"model_name": model.model_name})
