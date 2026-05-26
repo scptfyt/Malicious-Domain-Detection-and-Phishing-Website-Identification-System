@@ -186,6 +186,36 @@ def logout():
     return jsonify({"message": "logout success"})
 
 
+@auth_bp.put("/password")
+def change_password():
+    user_id = current_user_id()
+    if not user_id:
+        return jsonify({"message": "login required"}), 401
+
+    payload = request.get_json(silent=True) or {}
+    old_password = payload.get("old_password") or ""
+    new_password = payload.get("new_password") or ""
+    confirm_password = payload.get("confirm_password") or ""
+
+    if not old_password or not new_password or not confirm_password:
+        return jsonify({"message": "请填写原密码、新密码和确认密码"}), 400
+    if len(new_password) < 6:
+        return jsonify({"message": "新密码长度不足，至少需要 6 位"}), 400
+    if new_password != confirm_password:
+        return jsonify({"message": "两次输入的新密码不一致"}), 400
+    if old_password == new_password:
+        return jsonify({"message": "新密码不能与原密码相同"}), 400
+
+    user = User.query.get_or_404(user_id)
+    if not verify_password(old_password, user.password_hash):
+        return jsonify({"message": "原密码错误"}), 400
+
+    user.password_hash = hash_password(new_password)
+    record_operation("password_change", "user", user.id, {"username": user.username})
+    db.session.commit()
+    return jsonify({"message": "password changed"})
+
+
 @auth_bp.delete("/account")
 def delete_account():
     user_id = current_user_id()

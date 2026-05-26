@@ -93,6 +93,7 @@
         <span>接口状态</span>
         <strong id="apiStatus">检查中</strong>
         <div class="sidebar-actions">
+          <button id="changePasswordButton" type="button" class="secondary full">修改密码</button>
           <button id="deleteAccountButton" type="button" class="secondary full danger-button">注销账号</button>
           <button id="logoutButton" class="ghost-button full">退出登录</button>
         </div>
@@ -713,6 +714,31 @@ account-check-security.xyz</textarea>
 
     </main>
   </section>
+
+  <div id="passwordModal" class="modal-layer hidden" role="dialog" aria-modal="true" aria-labelledby="passwordModalTitle">
+    <form id="passwordForm" class="modal-card">
+      <div class="modal-head">
+        <div>
+          <strong id="passwordModalTitle">修改密码</strong>
+          <span>修改后请使用新密码登录系统</span>
+        </div>
+        <button id="closePasswordModal" type="button" class="ghost-button">关闭</button>
+      </div>
+      <label>原密码
+        <input id="oldPassword" type="password" autocomplete="current-password">
+      </label>
+      <label>新密码
+        <input id="newPassword" type="password" autocomplete="new-password" placeholder="至少 6 位">
+      </label>
+      <label>确认新密码
+        <input id="confirmPassword" type="password" autocomplete="new-password">
+      </label>
+      <div class="modal-actions">
+        <button type="button" id="cancelPasswordChange" class="secondary">取消</button>
+        <button type="submit" id="submitPasswordChange">确认修改</button>
+      </div>
+    </form>
+  </div>
 
   <div id="toast" class="toast" role="status"></div>
 

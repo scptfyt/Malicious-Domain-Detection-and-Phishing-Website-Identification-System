@@ -73,6 +73,7 @@ const textMap = {
   model_import_local: "本地模型导入",
   model_activate: "模型启用",
   model_delete: "模型删除",
+  password_change: "修改密码",
   model_seed_demo: "演示模型创建",
   review_create: "人工复核",
   user: "用户",
@@ -553,6 +554,46 @@ async function handleLogout() {
   setAuthView(true);
   toast("已退出登录");
   await refreshCaptcha();
+}
+
+function openPasswordModal() {
+  $("#passwordForm").reset();
+  $("#passwordModal").classList.remove("hidden");
+  $("#oldPassword").focus();
+}
+
+function closePasswordModal() {
+  $("#passwordModal").classList.add("hidden");
+  $("#passwordForm").reset();
+}
+
+async function handlePasswordChange(event) {
+  event.preventDefault();
+  const oldPassword = $("#oldPassword").value;
+  const newPassword = $("#newPassword").value;
+  const confirmPassword = $("#confirmPassword").value;
+  if (newPassword !== confirmPassword) {
+    toast("两次输入的新密码不一致");
+    return;
+  }
+  const button = $("#submitPasswordChange");
+  button.disabled = true;
+  button.textContent = "修改中...";
+  try {
+    await api("/api/auth/password", {
+      method: "PUT",
+      body: JSON.stringify({
+        old_password: oldPassword,
+        new_password: newPassword,
+        confirm_password: confirmPassword,
+      }),
+    });
+    closePasswordModal();
+    toast("密码已修改");
+  } finally {
+    button.disabled = false;
+    button.textContent = "确认修改";
+  }
 }
 
 async function handleDeleteAccount() {
@@ -1268,6 +1309,13 @@ function bindEvents() {
   $("#registerForm").addEventListener("submit", handleRegister);
   $("#refreshCaptcha").addEventListener("click", refreshCaptcha);
   $("#refreshCaptchaRegister").addEventListener("click", refreshCaptcha);
+  $("#changePasswordButton").addEventListener("click", openPasswordModal);
+  $("#passwordForm").addEventListener("submit", handlePasswordChange);
+  $("#closePasswordModal").addEventListener("click", closePasswordModal);
+  $("#cancelPasswordChange").addEventListener("click", closePasswordModal);
+  $("#passwordModal").addEventListener("click", (event) => {
+    if (event.target.id === "passwordModal") closePasswordModal();
+  });
   $("#logoutButton").addEventListener("click", handleLogout);
   $("#deleteAccountButton").addEventListener("click", handleDeleteAccount);
   $("#singleForm").addEventListener("submit", handleSingleDetect);
