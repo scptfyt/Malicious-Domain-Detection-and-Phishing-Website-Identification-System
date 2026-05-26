@@ -305,6 +305,17 @@ function populateModelSelects(models) {
   });
 }
 
+function clearModelUiState(emptyText = "暂无模型数据") {
+  state.models = [];
+  ["#singleModelSelect", "#batchModelSelect"].forEach((selector) => {
+    const node = $(selector);
+    if (node) node.innerHTML = `<option value="active">当前启用模型</option>`;
+  });
+  renderRows("#modelRows", [], emptyText);
+  renderRows("#taskRows", [], emptyText === "正在加载模型..." ? "正在加载训练任务..." : "暂无训练任务");
+  renderRows("#modelManageRows", [], emptyText);
+}
+
 async function loadModelOptions() {
   const models = await api("/api/models");
   populateModelSelects(models.items || []);
@@ -346,6 +357,7 @@ function resetSessionUiState() {
   state.adminSelectedUserIds.clear();
   state.batchCancelled = false;
   state.batchAbortController = null;
+  clearModelUiState();
   if ($("#recentSearchInput")) $("#recentSearchInput").value = "";
   if ($("#historySearchInput")) $("#historySearchInput").value = "";
   if ($("#passwordModal")) closePasswordModal();
@@ -924,6 +936,7 @@ async function handleDatasetImport(event) {
 }
 
 async function loadModels() {
+  clearModelUiState("正在加载模型...");
   const models = await api("/api/models");
   populateModelSelects(models.items || []);
   renderRows(
@@ -957,6 +970,7 @@ async function loadModels() {
 }
 
 async function loadModelManage() {
+  clearModelUiState("正在加载模型...");
   const models = await api("/api/models");
   populateModelSelects(models.items || []);
   renderRows(
