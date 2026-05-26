@@ -335,6 +335,22 @@ function canAccessView(view) {
   return state.user?.role !== "admin" || ADMIN_ALLOWED_VIEWS.has(view);
 }
 
+function resetSessionUiState() {
+  state.dashboardPage = 1;
+  state.dashboardTotalPages = 1;
+  state.dashboardSearch = "";
+  state.historySearch = "";
+  state.historySortBy = "detect_time";
+  state.historySortOrder = "desc";
+  state.adminSelectedUserId = null;
+  state.adminSelectedUserIds.clear();
+  state.batchCancelled = false;
+  state.batchAbortController = null;
+  if ($("#recentSearchInput")) $("#recentSearchInput").value = "";
+  if ($("#historySearchInput")) $("#historySearchInput").value = "";
+  if ($("#passwordModal")) closePasswordModal();
+}
+
 function switchView(view) {
   if (!canAccessView(view)) {
     toast("管理员账号仅用于监管，请使用管理员中心查看用户数据");
@@ -515,9 +531,10 @@ async function handleLogin(event) {
     state.user = data.user;
     setTopbarUser(data.user);
     setAuthView(false);
+    resetSessionUiState();
+    switchView("dashboard");
     toast(`已登录：${data.user.username}`);
     $("#loginCaptcha").value = "";
-    await loadDashboard();
   } catch (error) {
     await refreshCaptcha();
     toast(error.message);
@@ -538,9 +555,10 @@ async function handleRegister(event) {
     state.user = data.user;
     setTopbarUser(data.user);
     setAuthView(false);
+    resetSessionUiState();
+    switchView("dashboard");
     toast("注册并自动登录成功");
     $("#registerCaptcha").value = "";
-    await loadDashboard();
   } catch (error) {
     await refreshCaptcha();
     toast(error.message);
