@@ -7,7 +7,7 @@ from flask import Blueprint, Response, jsonify, request
 from sqlalchemy import or_
 
 from ..extensions import db
-from ..models import DetectionRecord, ModelInfo
+from ..models import DetectionRecord, ModelInfo, User
 from ..services.access_control import current_user_id, is_admin
 from ..services.batch_import_service import extract_targets_from_file, extract_targets_from_text_chunks
 from ..services.domain_service import parse_target
@@ -40,7 +40,26 @@ def _accessible_model_query():
 
 
 def _resolve_active_model():
+    if not is_admin():
+        user_id = current_user_id()
+        user = User.query.get(user_id) if user_id else None
+        if user and user.active_model_id:
+            selected = _accessible_model_query().filter(ModelInfo.id == user.active_model_id).first()
+            if selected:
+                return selected
     return _accessible_model_query().filter_by(is_active=True).order_by(ModelInfo.id.desc()).first()
+
+
+def _set_current_model(model: ModelInfo | None) -> None:
+    if not model or is_admin():
+        return
+    user = User.query.get(current_user_id())
+    if not user:
+        return
+    user.active_model_id = model.id
+    if model.owner_id == user.id:
+        ModelInfo.query.filter_by(owner_id=user.id, is_active=True).update({ModelInfo.is_active: False})
+        model.is_active = True
 
 
 def _resolve_requested_model(payload):
@@ -50,6 +69,7 @@ def _resolve_requested_model(payload):
     try:
         model = ModelInfo.query.get(int(model_id))
         if model and (is_admin() or model.owner_id in (None, current_user_id())):
+            _set_current_model(model)
             return model
         return None
     except (TypeError, ValueError):

@@ -3,7 +3,7 @@ from flask import Blueprint, jsonify, request
 from sqlalchemy import func
 from sqlalchemy.orm import defer
 
-from ..models import DetectionRecord, DomainSample, EvaluationMetric, ModelInfo, TrainingTask
+from ..models import DetectionRecord, DomainSample, EvaluationMetric, ModelInfo, TrainingTask, User
 from ..services.access_control import current_user_id, is_admin
 
 
@@ -11,8 +11,22 @@ dashboard_bp = Blueprint("dashboard", __name__)
 
 
 def _effective_active_model():
-    if not is_admin():
-        user_id = current_user_id()
+    if is_admin():
+        return None
+
+    user_id = current_user_id()
+    user = User.query.get(user_id) if user_id else None
+    if user and user.active_model_id:
+        selected = (
+            ModelInfo.query.options(defer(ModelInfo.model_blob))
+            .filter(ModelInfo.id == user.active_model_id)
+            .filter((ModelInfo.owner_id.is_(None)) | (ModelInfo.owner_id == user_id))
+            .first()
+        )
+        if selected:
+            return selected
+
+    if user_id:
         personal_model = (
             ModelInfo.query.options(defer(ModelInfo.model_blob))
             .filter_by(owner_id=user_id, is_active=True)
@@ -21,15 +35,9 @@ def _effective_active_model():
         )
         if personal_model:
             return personal_model
-        return (
-            ModelInfo.query.options(defer(ModelInfo.model_blob))
-            .filter(ModelInfo.owner_id.is_(None), ModelInfo.is_active.is_(True))
-            .order_by(ModelInfo.id.desc())
-            .first()
-        )
     return (
         ModelInfo.query.options(defer(ModelInfo.model_blob))
-        .filter_by(is_active=True)
+        .filter(ModelInfo.owner_id.is_(None), ModelInfo.is_active.is_(True))
         .order_by(ModelInfo.id.desc())
         .first()
     )

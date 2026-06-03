@@ -1125,6 +1125,50 @@ body.admin-mode .topbar {
   font-size: 20px;
 }
 
+.single-detail {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #e0e7f1;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+}
+
+.single-detail-title {
+  margin-bottom: 12px;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.single-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.single-detail-grid div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #edf1f7;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.single-detail-grid span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.single-detail-grid strong {
+  display: block;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
 .table-wrap {
   overflow: auto;
   border: 1px solid #edf1f7;
@@ -1433,7 +1477,8 @@ body.admin-mode .topbar {
   .field-grid,
   .trainer-actions,
   .local-import-grid,
-  .result-strip {
+  .result-strip,
+  .single-detail-grid {
     grid-template-columns: 1fr;
   }
 

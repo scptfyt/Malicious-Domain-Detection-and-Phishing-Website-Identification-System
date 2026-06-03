@@ -12,7 +12,7 @@ from sqlalchemy.orm import defer
 import joblib
 
 from ..extensions import db
-from ..models import DetectionRecord, EvaluationMetric, ModelInfo, TrainingTask
+from ..models import DetectionRecord, EvaluationMetric, ModelInfo, TrainingTask, User
 from ..services.access_control import current_user_id, is_admin
 from ..services.batch_import_service import extract_targets_from_file
 from ..services.log_service import record_operation
@@ -61,6 +61,16 @@ def _metric_value(metrics: dict, key: str):
 
 
 def _effective_active_model(user_id: int | None) -> ModelInfo | None:
+    user = User.query.get(user_id) if user_id else None
+    if user and user.active_model_id:
+        selected = (
+            _model_metadata_query()
+            .filter(ModelInfo.id == user.active_model_id)
+            .filter((ModelInfo.owner_id.is_(None)) | (ModelInfo.owner_id == user_id))
+            .first()
+        )
+        if selected:
+            return selected
     if user_id:
         personal_model = (
             _model_metadata_query().filter_by(owner_id=user_id, is_active=True)
@@ -252,6 +262,10 @@ def import_local_model():
     db.session.add(model)
     db.session.flush()
     model.file_path = f"database://model_info/{model.id}"
+    if activate:
+        user = User.query.get(user_id)
+        if user:
+            user.active_model_id = model.id
 
     metric = EvaluationMetric(
         model_id=model.id,
@@ -296,16 +310,16 @@ def activate_model(model_id: int):
     if not is_admin() and model.owner_id not in (None, user_id):
         return jsonify({"message": "forbidden"}), 403
 
-    # 普通用户的“当前启用模型”优先看个人模型；切换到系统模型时先关闭个人模型。
+    # Keep one account-level current model while preserving shared system models.
     personal_active_query = _model_metadata_query().filter_by(owner_id=user_id, is_active=True)
     for item in personal_active_query.all():
         item.is_active = False
 
-    if model.owner_id is None:
-        system_active_query = _model_metadata_query().filter(ModelInfo.owner_id.is_(None), ModelInfo.is_active.is_(True))
-        for item in system_active_query.all():
-            item.is_active = False
-    model.is_active = True
+    if model.owner_id == user_id:
+        model.is_active = True
+    user = User.query.get(user_id)
+    if user:
+        user.active_model_id = model.id
     record_operation("model_activate", "model_info", model.id, {"model_name": model.model_name})
     db.session.commit()
     active_model = _effective_active_model(user_id)
@@ -334,6 +348,9 @@ def delete_model(model_id: int):
     db.session.flush()
 
     activated_model = _effective_active_model(current_user_id()) if was_active else None
+    user = User.query.get(current_user_id())
+    if user and user.active_model_id == model_id:
+        user.active_model_id = activated_model.id if activated_model else None
     record_operation(
         "model_delete",
         "model_info",

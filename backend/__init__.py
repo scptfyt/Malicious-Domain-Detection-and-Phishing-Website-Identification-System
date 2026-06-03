@@ -115,6 +115,14 @@ def _ensure_demo_admin() -> None:
 
 def _ensure_schema() -> None:
     inspector = inspect(db.engine)
+    user_columns = {column["name"] for column in inspector.get_columns("user")}
+    if "active_model_id" not in user_columns:
+        try:
+            db.session.execute(text("ALTER TABLE user ADD COLUMN active_model_id INTEGER NULL"))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
     model_columns = {column["name"] for column in inspector.get_columns("model_info")}
     if "owner_id" not in model_columns:
         try:

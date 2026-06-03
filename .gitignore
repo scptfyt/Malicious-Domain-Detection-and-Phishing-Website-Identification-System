@@ -10,4 +10,7 @@ logs/
 
 # Local docs and deployment helpers
 *.pptx
-
+/*.txt
+!/requirements.txt
+/毕业论文/
+/chrome-profile/

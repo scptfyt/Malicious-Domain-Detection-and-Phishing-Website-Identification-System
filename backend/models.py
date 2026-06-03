@@ -31,6 +31,7 @@ class User(db.Model, TimestampMixin):
     role = db.Column(db.String(32), nullable=False, default="user")
     email = db.Column(db.String(128))
     status = db.Column(db.String(16), nullable=False, default="active")
+    active_model_id = db.Column(db.Integer)
 
 
 class DomainSample(db.Model, TimestampMixin):

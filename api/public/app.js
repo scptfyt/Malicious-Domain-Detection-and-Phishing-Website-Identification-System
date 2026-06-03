@@ -267,6 +267,36 @@ function localizedPayload(data) {
   };
 }
 
+function renderSingleDetectionDetail(data) {
+  const features = data.features || {};
+  const rows = [
+    ["检测输入", data.input_text],
+    ["解析域名", data.parsed_domain],
+    ["检测模型", data.model?.model_name || "-"],
+    ["模型类型", data.model?.model_type || "-"],
+    ["结果说明", data.explain_text || "-"],
+    ["域名长度", features.domain_length],
+    ["路径长度", features.path_length],
+    ["点号数量", features.dot_count],
+    ["连字符数量", features.hyphen_count],
+    ["数字比例", features.digit_ratio],
+    ["熵值", features.entropy_value],
+  ];
+  $("#singleOutput").innerHTML = `
+    <div class="single-detail-title">检测详情</div>
+    <div class="single-detail-grid">
+      ${rows
+        .map(
+          ([label, value]) => `
+            <div>
+              <span>${label}</span>
+              <strong>${escapeHtml(value ?? "-")}</strong>
+            </div>`
+        )
+        .join("")}
+    </div>`;
+}
+
 function setBatchProgress({ title, current, done = 0, total = 0, log } = {}) {
   $("#batchProgressPanel").classList.remove("hidden");
   if (title !== undefined) $("#batchProgressTitle").textContent = title;
@@ -282,26 +312,24 @@ function setBatchProgress({ title, current, done = 0, total = 0, log } = {}) {
 }
 
 function modelLabel(model) {
-  if (!model) return "当前启用模型";
-  const active = model.is_active ? " / 当前启用" : "";
+  if (!model) return "暂无可用模型";
+  const active = model.is_active ? " / 启用中" : "";
   return `${model.model_name}（${model.model_type}${active}）`;
 }
 
 function populateModelSelects(models) {
   state.models = models || [];
   const activeModel = state.models.find((item) => item.is_active);
-  const selectableModels = state.models.filter((item) => !item.is_active);
-  const options = [
-    `<option value="active">当前启用模型${activeModel ? `：${activeModel.model_name}` : ""}</option>`,
-    ...selectableModels.map((item) => `<option value="${item.id}">${modelLabel(item)}</option>`),
-  ].join("");
+  const options = state.models.length
+    ? state.models.map((item) => `<option value="${item.id}">${modelLabel(item)}</option>`).join("")
+    : `<option value="active">暂无可用模型</option>`;
 
   ["#singleModelSelect", "#batchModelSelect"].forEach((selector) => {
     const node = $(selector);
     if (!node) return;
-    const previous = node.value || "active";
     node.innerHTML = options;
-    node.value = selectableModels.some((item) => String(item.id) === previous) ? previous : "active";
+    node.value = activeModel ? String(activeModel.id) : "active";
+    node.disabled = !state.models.length;
   });
 }
 
@@ -309,7 +337,10 @@ function clearModelUiState(emptyText = "暂无模型数据") {
   state.models = [];
   ["#singleModelSelect", "#batchModelSelect"].forEach((selector) => {
     const node = $(selector);
-    if (node) node.innerHTML = `<option value="active">当前启用模型</option>`;
+    if (node) {
+      node.innerHTML = `<option value="active">暂无可用模型</option>`;
+      node.disabled = true;
+    }
   });
   renderRows("#modelRows", [], emptyText);
   renderRows("#taskRows", [], emptyText === "正在加载模型..." ? "正在加载训练任务..." : "暂无训练任务");
@@ -320,6 +351,21 @@ async function loadModelOptions() {
   const models = await api("/api/models");
   populateModelSelects(models.items || []);
   return models;
+}
+
+async function handleModelSelectChange(event) {
+  const modelId = event.target.value;
+  if (!modelId || modelId === "active") return;
+  event.target.disabled = true;
+  try {
+    await api(`/api/models/${modelId}/activate`, { method: "PUT" });
+    await loadModelOptions();
+    const activeModel = state.models.find((item) => String(item.id) === String(modelId));
+    $("#engineBadge").textContent = activeModel ? activeModel.model_name : "启发式规则基线";
+    toast("当前检测模型已切换");
+  } finally {
+    event.target.disabled = false;
+  }
 }
 
 function setAuthView(showAuth) {
@@ -439,7 +485,13 @@ async function loadDashboard() {
   $("#metricDetections").textContent = data.detection_total;
   $("#metricModels").textContent = data.model_total;
   $("#metricTasks").textContent = data.task_total;
-  $("#engineBadge").textContent = data.active_model ? data.active_model.model_name : "启发式规则基线";
+  $("#heroModelCard")?.classList.toggle("hidden", state.user?.role === "admin");
+  $("#engineBadge").textContent =
+    state.user?.role === "admin"
+      ? "管理员监管模式"
+      : data.active_model
+        ? data.active_model.model_name
+        : "启发式规则基线";
   $("#sessionBadge").textContent = state.user ? `已登录：${state.user.username}` : "未登录";
   $("#heroModel").textContent = data.active_model ? data.active_model.model_name : "无启用模型";
   $("#heroRisk").textContent = riskDistribution["high-risk"] || riskDistribution.suspicious || 0;
@@ -653,9 +705,10 @@ async function handleSingleDetect(event) {
     $("#singleRiskLevel").innerHTML = tag(data.risk_level);
     $("#singleRiskScore").textContent = data.risk_score;
     $("#singleLabel").innerHTML = tag(data.predict_label);
-    $("#singleOutput").textContent = JSON.stringify(localizedPayload(data), null, 2);
+    renderSingleDetectionDetail(data);
     toast("检测完成");
-    await loadDashboard();
+    await loadModelOptions();
+    if ($("#view-dashboard").classList.contains("active")) await loadDashboard();
   } catch (error) {
     if (error.status === 401) return handleAuthRequired();
     throw error;
@@ -691,7 +744,8 @@ async function handleBatchDetect(event) {
       )
     );
     toast(`完成 ${data.total} 条检测`);
-    await loadDashboard();
+    await loadModelOptions();
+    if ($("#view-dashboard").classList.contains("active")) await loadDashboard();
   } catch (error) {
     if (error.status === 401) return handleAuthRequired();
     throw error;
@@ -809,7 +863,8 @@ async function handleBatchFileDetect() {
       });
       toast(`文件批量检测完成：${items.length} 条`);
     }
-    await loadDashboard();
+    await loadModelOptions();
+    if ($("#view-dashboard").classList.contains("active")) await loadDashboard();
   } catch (error) {
     if (error.name === "AbortError") {
       setBatchProgress({
@@ -1351,7 +1406,9 @@ function bindEvents() {
   $("#logoutButton").addEventListener("click", handleLogout);
   $("#deleteAccountButton").addEventListener("click", handleDeleteAccount);
   $("#singleForm").addEventListener("submit", handleSingleDetect);
+  $("#singleModelSelect").addEventListener("change", handleModelSelectChange);
   $("#batchForm").addEventListener("submit", handleBatchDetect);
+  $("#batchModelSelect").addEventListener("change", handleModelSelectChange);
   $("#uploadBatchFile").addEventListener("click", handleBatchFileDetect);
   $("#stopBatchFile").addEventListener("click", stopBatchFileDetect);
   $("#recentPrevPage").addEventListener("click", () => changeRecentPage(-1));

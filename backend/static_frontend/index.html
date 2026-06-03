@@ -114,7 +114,7 @@
 
       <section class="view active" id="view-dashboard">
         <section class="hero-strip">
-          <article class="hero-card jump-card" data-jump-view="models" role="button" tabindex="0">
+          <article class="hero-card jump-card" id="heroModelCard" data-jump-view="models" role="button" tabindex="0">
             <span>当前模型</span>
             <strong id="heroModel">-</strong>
           </article>
@@ -207,7 +207,7 @@
             <div><span>风险分数</span><strong id="singleRiskScore">-</strong></div>
             <div><span>预测标签</span><strong id="singleLabel">-</strong></div>
           </div>
-          <pre id="singleOutput"></pre>
+          <div id="singleOutput" class="single-detail"></div>
         </section>
       </section>
 
