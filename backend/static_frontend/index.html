@@ -18,12 +18,12 @@
         <button class="auth-tab" data-auth-tab="register">注册</button>
       </div>
 
-      <form id="loginForm" class="auth-form active">
+      <form id="loginForm" class="auth-form active" autocomplete="off">
         <label>账号
-          <input id="loginUsername" value="admin" autocomplete="username">
+          <input id="loginUsername" autocomplete="off">
         </label>
         <label>密码
-          <input id="loginPassword" value="admin123" type="password" autocomplete="current-password">
+          <input id="loginPassword" type="password" autocomplete="new-password">
         </label>
         <div class="captcha-row">
           <label>验证码
