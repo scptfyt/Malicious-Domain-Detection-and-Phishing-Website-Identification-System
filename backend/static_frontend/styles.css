@@ -1248,6 +1248,10 @@ body.admin-mode .topbar {
   line-height: 1.45;
 }
 
+.history-text-cell {
+  word-break: normal;
+}
+
 .bar-list {
   display: grid;
   gap: 10px;

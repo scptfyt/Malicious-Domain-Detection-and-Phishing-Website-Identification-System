@@ -96,6 +96,15 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+function wrapEscapedText(value, maxChars = 100) {
+  const text = String(value ?? "");
+  const parts = [];
+  for (let index = 0; index < text.length; index += maxChars) {
+    parts.push(escapeHtml(text.slice(index, index + maxChars)));
+  }
+  return parts.join("<br>");
+}
+
 function formatLogDetail(value) {
   if (!value) return "-";
   try {
@@ -1164,7 +1173,7 @@ async function loadHistory() {
       (item) => `
         <tr>
           <td>${item.id}</td>
-          <td class="history-text-cell">${escapeHtml(item.input_text)}</td>
+          <td class="history-text-cell">${wrapEscapedText(item.input_text, 100)}</td>
           <td class="history-domain-cell">${escapeHtml(item.parsed_domain)}</td>
           <td>${item.model_name || "-"}</td>
           <td>${tag(item.predict_label)}</td>
