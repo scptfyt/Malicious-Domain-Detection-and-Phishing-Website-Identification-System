@@ -93,7 +93,7 @@ class TrainerApp:
         self.algorithm = StringVar(value="char_lr")
         self.test_size = DoubleVar(value=0.2)
         self.max_features = IntVar(value=8000)
-        self.use_demo_samples = BooleanVar(value=False)
+        self.use_preset_samples = BooleanVar(value=False)
         self.status = StringVar(value="请选择正常样本文件和恶意/钓鱼样本文件。")
 
         self._build_ui()
@@ -126,7 +126,7 @@ class TrainerApp:
         ttk.Label(frame, text="最大特征数").grid(row=8, column=0, sticky="w", pady=8)
         ttk.Spinbox(frame, from_=1000, to=50000, increment=500, textvariable=self.max_features).grid(row=8, column=1, sticky="ew", pady=8)
 
-        ttk.Checkbutton(frame, text="样本较少时混入少量演示样本", variable=self.use_demo_samples).grid(row=9, column=1, sticky="w", pady=8)
+        ttk.Checkbutton(frame, text="样本较少时混入少量预设样本", variable=self.use_preset_samples).grid(row=9, column=1, sticky="w", pady=8)
 
         ttk.Button(frame, text="开始训练", command=self.train).grid(row=10, column=1, sticky="ew", pady=(18, 10))
         ttk.Label(frame, textvariable=self.status, foreground="#2454c6").grid(row=11, column=0, columnspan=3, sticky="w", pady=8)
@@ -167,7 +167,7 @@ class TrainerApp:
         if path:
             self.output_dir.set(path)
 
-    def _demo_rows(self) -> list[tuple[str, int]]:
+    def _preset_rows(self) -> list[tuple[str, int]]:
         return [
             ("example.com", 0),
             ("baidu.com", 0),
@@ -189,8 +189,8 @@ class TrainerApp:
             benign = extract_targets(benign_file)
             malicious = extract_targets(malicious_file)
             rows = [(item, 0) for item in benign] + [(item, 1) for item in malicious]
-            if self.use_demo_samples.get():
-                rows.extend(self._demo_rows())
+            if self.use_preset_samples.get():
+                rows.extend(self._preset_rows())
             if len(rows) < 20:
                 raise ValueError("训练样本数量过少，至少需要 20 条样本。")
             if len({label for _, label in rows}) < 2:

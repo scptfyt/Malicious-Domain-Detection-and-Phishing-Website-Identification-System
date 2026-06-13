@@ -399,16 +399,16 @@ def get_model_metrics(model_id: int):
 @models_bp.post("/seed-demo")
 def seed_demo_model():
     if is_admin():
-        return jsonify({"message": "管理员账号仅用于监管，不支持创建演示模型"}), 403
+        return jsonify({"message": "管理员账号仅用于监管，不支持创建初始化模型"}), 403
     payload = request.get_json(silent=True) or {}
     model = ModelInfo(
-        model_name=payload.get("model_name", "demo-cnn"),
+        model_name=payload.get("model_name", "baseline-cnn"),
         model_type=payload.get("model_type", "cnn"),
         version=payload.get("version", "v0.1"),
-        file_path=payload.get("file_path", "models/demo-cnn.pt"),
+        file_path=payload.get("file_path", "models/baseline-cnn.pt"),
         feature_type=payload.get("feature_type", "char_sequence"),
         is_active=bool(payload.get("is_active", False)),
-        remark=payload.get("remark", "demo model for early development"),
+        remark=payload.get("remark", "baseline model for initial configuration"),
     )
     db.session.add(model)
     db.session.flush()

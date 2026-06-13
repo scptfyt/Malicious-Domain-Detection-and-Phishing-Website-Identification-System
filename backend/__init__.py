@@ -172,17 +172,23 @@ def _seed_default_models() -> None:
             "remark": "default system deep model",
         },
         {
-            "model_name": "smoke-deep-cnn",
+            "model_name": "lightweight-deep-cnn",
             "model_type": "deep_cnn",
-            "version": "default-smoke-cnn",
+            "version": "default-lightweight-cnn",
             "file_path": "artifacts/models/smoke-deep-cnn-v20260512100419.pt",
             "feature_type": "char_deep",
             "is_active": False,
             "remark": "default system deep model",
         },
     ]
-    existing = {item.model_name for item in ModelInfo.query.all()}
     changed = False
+    legacy_model = ModelInfo.query.filter_by(model_name="smoke-deep-cnn").first()
+    if legacy_model:
+        legacy_model.model_name = "lightweight-deep-cnn"
+        if legacy_model.version == "default-smoke-cnn":
+            legacy_model.version = "default-lightweight-cnn"
+        changed = True
+    existing = {item.model_name for item in ModelInfo.query.all()}
     for item in defaults:
         if item["model_name"] in existing:
             continue

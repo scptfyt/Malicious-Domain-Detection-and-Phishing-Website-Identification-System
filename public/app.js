@@ -74,7 +74,7 @@ const textMap = {
   model_activate: "模型启用",
   model_delete: "模型删除",
   password_change: "修改密码",
-  model_seed_demo: "演示模型创建",
+  model_seed_demo: "初始化模型创建",
   review_create: "人工复核",
   user: "用户",
   admin: "管理员",

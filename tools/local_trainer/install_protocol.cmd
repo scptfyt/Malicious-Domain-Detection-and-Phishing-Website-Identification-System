@@ -15,7 +15,7 @@ if not exist "%LAUNCHER%" (
   echo open_trainer.cmd was not found. >> "%LOG_FILE%"
   echo open_trainer.cmd was not found.
   echo Log file: %LOG_FILE%
-  pause
+  if /i not "%~1"=="--no-pause" pause
   exit /b 1
 )
 
@@ -27,11 +27,11 @@ reg add "HKCU\Software\Classes\domaintrainer\shell\open\command" /ve /d "cmd.exe
 if errorlevel 1 (
   echo Protocol registration failed.
   echo Log file: %LOG_FILE%
-  pause
+  if /i not "%~1"=="--no-pause" pause
   exit /b 1
 )
 
 echo Protocol registration completed.
 echo You can now open domaintrainer://open from the web system.
 echo Log file: %LOG_FILE%
-pause
+if /i not "%~1"=="--no-pause" pause

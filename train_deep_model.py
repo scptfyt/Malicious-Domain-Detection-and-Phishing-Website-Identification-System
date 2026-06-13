@@ -36,7 +36,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--hidden-size", type=int, default=128)
     parser.add_argument("--num-filters", type=int, default=128)
     parser.add_argument("--dropout", type=float, default=0.3)
-    parser.add_argument("--sample-limit", type=int, default=0, help="Limit each split for a quick smoke test.")
+    parser.add_argument("--sample-limit", type=int, default=0, help="Limit each split for a quick validation run.")
     parser.add_argument("--no-activate", action="store_true")
     parser.add_argument("--seed", type=int, default=42)
     return parser.parse_args()

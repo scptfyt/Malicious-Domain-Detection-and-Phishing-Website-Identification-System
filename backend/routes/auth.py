@@ -94,7 +94,7 @@ def login():
                 "username": user.username,
                 "role": user.role,
             },
-            "token": f"demo-token-{user.id}",
+            "token": f"session-token-{user.id}",
         }
     )
 
