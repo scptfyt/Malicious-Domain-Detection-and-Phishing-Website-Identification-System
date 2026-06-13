@@ -105,7 +105,7 @@ def dashboard_summary():
     detection_label_distribution = _effective_detection_label_distribution(detection_query)
     recent = [
         item.to_dict()
-        for item in DetectionRecord.query.order_by(DetectionRecord.detect_time.desc()).limit(8).all()
+        for item in detection_query.order_by(DetectionRecord.detect_time.desc()).limit(8).all()
     ]
     return jsonify(
         {

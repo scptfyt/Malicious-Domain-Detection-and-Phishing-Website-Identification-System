@@ -1542,10 +1542,10 @@ function bindEvents() {
 async function boot() {
   bindEvents();
   await loadHealth();
-  await refreshCaptcha();
   const authenticated = await loadMe();
   if (!authenticated) {
     setAuthView(true);
+    await refreshCaptcha();
   }
 }
 
