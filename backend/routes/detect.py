@@ -96,6 +96,8 @@ def _apply_history_filters(query):
             DetectionRecord.risk_level.ilike(pattern),
             ModelInfo.model_name.ilike(pattern),
         ]
+        if keyword.isdigit():
+            conditions.append(DetectionRecord.id == int(keyword))
         if aliases:
             conditions.extend(
                 [
