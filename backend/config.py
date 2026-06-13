@@ -22,6 +22,11 @@ class Config:
     )
 
     SQLALCHEMY_DATABASE_URI = DATABASE_URL
+    SQLALCHEMY_ENGINE_OPTIONS = (
+        {"connect_args": {"init_command": "SET time_zone = '+08:00'"}}
+        if DATABASE_URL.startswith("mysql")
+        else {}
+    )
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
     SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "0") == "1"

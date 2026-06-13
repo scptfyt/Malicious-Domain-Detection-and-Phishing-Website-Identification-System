@@ -139,7 +139,29 @@ function tag(value) {
 
 function formatDate(value) {
   if (!value) return "-";
-  return new Date(value).toLocaleString();
+  const raw = String(value).trim().replace(" ", "T");
+  const hasTimezone = /([zZ]|[+-]\d{2}:?\d{2})$/.test(raw);
+  const date = new Date(hasTimezone ? raw : `${raw}+08:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("zh-CN", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(date).replaceAll("/", "-");
+}
+
+function beijingDateStamp() {
+  return new Intl.DateTimeFormat("zh-CN", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date()).replaceAll("/", "");
 }
 
 function renderRows(target, rows, emptyText = "暂无数据") {
@@ -571,7 +593,7 @@ async function exportDetectionHistory() {
   const blob = await response.blob();
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  const stamp = new Date().toISOString().slice(0, 10).replaceAll("-", "");
+  const stamp = beijingDateStamp();
   link.href = url;
   link.download = `detection_history_${stamp}.csv`;
   document.body.appendChild(link);

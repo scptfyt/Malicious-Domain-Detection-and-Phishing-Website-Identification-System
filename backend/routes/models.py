@@ -3,7 +3,6 @@ from __future__ import annotations
 import io
 import json
 import re
-from datetime import datetime
 from pathlib import Path
 
 from flask import Blueprint, jsonify, request
@@ -17,6 +16,7 @@ from ..services.access_control import current_user_id, is_admin
 from ..services.batch_import_service import extract_targets_from_file
 from ..services.log_service import record_operation
 from ..services.model_training import train_local_model
+from ..services.time_service import beijing_now, beijing_timestamp
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -39,7 +39,7 @@ def _safe_name(value: str, fallback: str) -> str:
 def _safe_version(value: str | None) -> str:
     text = (value or "").strip()
     if not text:
-        text = f"local-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        text = f"local-{beijing_timestamp()}"
     return re.sub(r"[^A-Za-z0-9_.-]", "-", text)[:32]
 
 
@@ -239,8 +239,8 @@ def import_local_model():
             ensure_ascii=False,
         ),
         status="completed",
-        started_at=datetime.utcnow(),
-        finished_at=datetime.utcnow(),
+        started_at=beijing_now(),
+        finished_at=beijing_now(),
         created_by=user_id,
         log_text="imported model trained by local trainer",
     )

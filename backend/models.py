@@ -3,12 +3,13 @@ from datetime import datetime
 from sqlalchemy.inspection import inspect
 
 from .extensions import db
+from .services.time_service import beijing_now
 
 
 class TimestampMixin:
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=beijing_now, nullable=False)
     updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        db.DateTime, default=beijing_now, onupdate=beijing_now, nullable=False
     )
 
     def to_dict(self):
@@ -136,7 +137,7 @@ class DetectionRecord(db.Model, TimestampMixin):
     risk_score = db.Column(db.Float, nullable=False)
     risk_level = db.Column(db.String(32), nullable=False)
     model_id = db.Column(db.Integer, db.ForeignKey("model_info.id"))
-    detect_time = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    detect_time = db.Column(db.DateTime, default=beijing_now, nullable=False)
     explain_text = db.Column(db.Text)
 
     user = db.relationship("User", backref=db.backref("detection_records", lazy=True))

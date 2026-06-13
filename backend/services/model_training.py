@@ -5,7 +5,6 @@ import io
 import os
 import re
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -29,6 +28,7 @@ from ..models import DomainSample, EvaluationMetric, ModelInfo, TrainingTask
 from .bootstrap_samples import build_bootstrap_samples
 from .deep_model_service import predict_with_deep_model
 from .domain_service import parse_target
+from .time_service import beijing_isoformat, beijing_now, beijing_timestamp
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ARTIFACT_DIR = Path(os.getenv("MODEL_ARTIFACT_DIR", PROJECT_ROOT / "artifacts" / "models"))
@@ -63,7 +63,7 @@ def _parse_int(value: Any, default: int, minimum: int, maximum: int) -> int:
 def _safe_version(value: Any) -> str:
     raw = str(value or "").strip()
     if not raw:
-        return f"v{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        return f"v{beijing_timestamp()}"
     return re.sub(r"[^A-Za-z0-9_.-]", "-", raw)[:64]
 
 
@@ -295,7 +295,7 @@ def train_local_model(payload: Dict[str, Any], created_by: int | None = None) ->
         "algorithm": algorithm,
         "feature_type": feature_type,
         "version": version,
-        "trained_at": datetime.utcnow().isoformat(),
+        "trained_at": beijing_isoformat(),
         "class_names": ["benign", "malicious"],
         "text_strategy": "registered_domain_plus_path_query",
         "config": {
@@ -315,8 +315,8 @@ def train_local_model(payload: Dict[str, Any], created_by: int | None = None) ->
         dataset_size=len(rows),
         train_config=json.dumps(artifact["config"], ensure_ascii=False),
         status="completed",
-        started_at=datetime.utcnow(),
-        finished_at=datetime.utcnow(),
+        started_at=beijing_now(),
+        finished_at=beijing_now(),
         created_by=created_by,
         log_text=f"trained {algorithm} with {len(rows)} samples",
     )

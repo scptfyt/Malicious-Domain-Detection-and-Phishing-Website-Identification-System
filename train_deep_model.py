@@ -4,7 +4,6 @@ import argparse
 import json
 import random
 from collections import Counter
-from datetime import datetime
 from pathlib import Path
 
 import torch
@@ -17,6 +16,7 @@ from backend.extensions import db
 from backend.ml.deep_dataset import LABEL_TO_ID, UrlTextDataset, load_vocab, read_url_rows
 from backend.ml.deep_models import build_deep_model
 from backend.models import EvaluationMetric, ModelInfo, TrainingTask
+from backend.services.time_service import beijing_isoformat, beijing_now, beijing_timestamp
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -155,7 +155,7 @@ def train(args: argparse.Namespace):
 
 
 def save_and_record(args: argparse.Namespace, model, vocab, model_config, history, metrics, dataset_size):
-    version = f"v{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+    version = f"v{beijing_timestamp()}"
     model_name = args.model_name or f"deep-{args.model}"
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     artifact_path = ARTIFACT_DIR / f"{model_name}-{version}.pt"
@@ -167,7 +167,7 @@ def save_and_record(args: argparse.Namespace, model, vocab, model_config, histor
         "max_len": args.max_len,
         "metrics": metrics,
         "history": history,
-        "trained_at": datetime.utcnow().isoformat(),
+        "trained_at": beijing_isoformat(),
         "label_type": "binary_benign_vs_malicious",
     }
     torch.save(checkpoint, artifact_path)
@@ -193,8 +193,8 @@ def save_and_record(args: argparse.Namespace, model, vocab, model_config, histor
                 ensure_ascii=False,
             ),
             status="completed",
-            started_at=datetime.utcnow(),
-            finished_at=datetime.utcnow(),
+            started_at=beijing_now(),
+            finished_at=beijing_now(),
             log_text=f"trained deep {args.model} with {dataset_size} samples",
         )
         db.session.add(task)
