@@ -1164,8 +1164,8 @@ async function loadHistory() {
       (item) => `
         <tr>
           <td>${item.id}</td>
-          <td>${item.input_text}</td>
-          <td>${item.parsed_domain}</td>
+          <td class="history-text-cell">${escapeHtml(item.input_text)}</td>
+          <td class="history-domain-cell">${escapeHtml(item.parsed_domain)}</td>
           <td>${item.model_name || "-"}</td>
           <td>${tag(item.predict_label)}</td>
           <td>${tag(item.risk_level)}</td>
