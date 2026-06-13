@@ -353,7 +353,7 @@ def detect_history():
         per_page = 50
 
     query = DetectionRecord.query
-    if not is_admin():
+    if not is_admin() or (request.args.get("scope") or "").lower() == "mine":
         query = query.filter_by(user_id=current_user_id())
     query = _apply_history_filters(query)
     total = query.count()

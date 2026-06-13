@@ -535,6 +535,7 @@ async function loadRecentDetections() {
   const params = new URLSearchParams({
     page: String(state.dashboardPage),
     per_page: String(state.dashboardPerPage),
+    scope: "mine",
   });
   if (state.dashboardSearch) params.set("q", state.dashboardSearch);
   const history = await api(`/api/detect/history?${params.toString()}`);
