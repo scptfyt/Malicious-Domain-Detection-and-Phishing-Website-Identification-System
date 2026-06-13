@@ -1,9 +1,19 @@
 from flask import Blueprint, jsonify, request
 
+from collections import Counter
+
 from sqlalchemy import func
 from sqlalchemy.orm import defer
 
-from ..models import DetectionRecord, DomainSample, EvaluationMetric, ModelInfo, TrainingTask, User
+from ..models import (
+    DetectionRecord,
+    DomainSample,
+    EvaluationMetric,
+    ModelInfo,
+    ReviewFeedback,
+    TrainingTask,
+    User,
+)
 from ..services.access_control import current_user_id, is_admin
 
 
@@ -43,6 +53,36 @@ def _effective_active_model():
     )
 
 
+def _effective_detection_label_distribution(detection_query):
+    records = detection_query.with_entities(DetectionRecord.id, DetectionRecord.predict_label).all()
+    record_ids = [record_id for record_id, _ in records]
+    if not record_ids:
+        return {}
+
+    latest_review_labels = {}
+    reviews = (
+        ReviewFeedback.query.with_entities(
+            ReviewFeedback.record_id,
+            ReviewFeedback.correct_label,
+            ReviewFeedback.id,
+        )
+        .filter(ReviewFeedback.record_id.in_(record_ids))
+        .filter(ReviewFeedback.correct_label.isnot(None))
+        .filter(ReviewFeedback.correct_label != "")
+        .order_by(ReviewFeedback.record_id.asc(), ReviewFeedback.id.desc())
+        .all()
+    )
+    for record_id, correct_label, _ in reviews:
+        if record_id not in latest_review_labels:
+            latest_review_labels[record_id] = correct_label
+
+    counter = Counter()
+    for record_id, predict_label in records:
+        label = latest_review_labels.get(record_id) or predict_label or "unknown"
+        counter[label] += 1
+    return dict(counter)
+
+
 @dashboard_bp.get("/api/dashboard/summary")
 def dashboard_summary():
     requested_scope = (request.args.get("scope") or "mine").lower()
@@ -62,13 +102,7 @@ def dashboard_summary():
         .group_by(DetectionRecord.risk_level)
         .all()
     )
-    detection_label_rows = (
-        detection_query.with_entities(
-            DetectionRecord.predict_label, func.count(DetectionRecord.id)
-        )
-        .group_by(DetectionRecord.predict_label)
-        .all()
-    )
+    detection_label_distribution = _effective_detection_label_distribution(detection_query)
     recent = [
         item.to_dict()
         for item in DetectionRecord.query.order_by(DetectionRecord.detect_time.desc()).limit(8).all()
@@ -83,9 +117,7 @@ def dashboard_summary():
             "stats_scope": stats_scope,
             "active_model": active_model.to_dict() if active_model else None,
             "sample_distribution": {label or "unknown": count for label, count in sample_rows},
-            "detection_label_distribution": {
-                label or "unknown": count for label, count in detection_label_rows
-            },
+            "detection_label_distribution": detection_label_distribution,
             "risk_distribution": {label or "unknown": count for label, count in risk_rows},
             "recent_detections": recent,
         }

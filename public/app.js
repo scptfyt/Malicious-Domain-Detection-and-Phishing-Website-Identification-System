@@ -1378,6 +1378,7 @@ async function handleReview(event) {
   });
   toast("复核已提交");
   await loadReviews();
+  if ($("#view-dashboard")?.classList.contains("active")) await loadDashboard();
 }
 
 function handleAuthRequired() {
